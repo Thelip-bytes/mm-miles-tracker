@@ -8,7 +8,10 @@ import {
   todayStr, nowLocal, monthKey, monthLabel,
   safeGet, safeSet, getCol, parseFlexibleDateTime, parseFlexibleDate, numOrBlank
 } from '@/lib/helpers';
-import { IconDownload, IconUpload } from './icons';
+import {
+  IconGrid, IconCar, IconKey, IconUsers, IconWallet, IconReceipt,
+  IconSun, IconMoon, IconDownload, IconUpload
+} from './icons';
 import { Overview } from './Overview';
 import { Bookings } from './Bookings';
 import { PayoutsView } from './PayoutsView';
@@ -459,13 +462,13 @@ export function App({ role, onLogout }) {
   }, [enriched, payoutFilter, payoutSearch, vehicles]);
 
   const allNavItems = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'bookings', label: 'Bookings' },
-    { id: 'payouts', label: 'Payouts' },
-    { id: 'vehicles', label: 'Vehicles' },
-    { id: 'hosts', label: 'Hosts' },
-    { id: 'customers', label: 'Customers' },
-    { id: 'cashflow', label: 'Income, expenses & cash flow' },
+    { id: 'overview', label: 'Overview', Icon: IconGrid },
+    { id: 'bookings', label: 'Bookings', Icon: IconCar },
+    { id: 'payouts', label: 'Payouts', Icon: IconWallet },
+    { id: 'vehicles', label: 'Vehicles', Icon: IconKey },
+    { id: 'hosts', label: 'Hosts', Icon: IconUsers },
+    { id: 'customers', label: 'Customers', Icon: IconUsers },
+    { id: 'cashflow', label: 'Income, expenses & cash flow', Icon: IconReceipt },
   ];
   const navItems = allNavItems.filter(item => perms.tabs.includes(item.id));
 
@@ -493,12 +496,14 @@ export function App({ role, onLogout }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {navItems.map(item => (
-            <div key={item.id} className={`mm-nav-item ${tab === item.id ? 'active' : ''}`} onClick={() => setTab(item.id)}>{item.label}</div>
+            <div key={item.id} className={`mm-nav-item ${tab === item.id ? 'active' : ''}`} onClick={() => setTab(item.id)}>
+              <item.Icon size={16} />{item.label}
+            </div>
           ))}
         </div>
         <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <button type="button" className="mm-btn mm-btn-ghost" style={{ justifyContent: 'center', background: 'transparent', color: '#C9CCDA', border: '1px solid #3A4568' }} onClick={() => setTheme(t => (t === 'light' ? 'dark' : 'light'))}>
-            {theme === 'light' ? 'Dark mode' : 'Light mode'}
+          <button type="button" className="mm-btn mm-btn-ghost" style={{ justifyContent: 'center', background: 'transparent', color: '#C9CCDA', border: '1px solid #3A4568' }} onClick={() => setTheme(t => (t === 'light' ? 'dark' : 'light') )}>
+            {theme === 'light' ? <IconMoon /> : <IconSun />} {theme === 'light' ? 'Dark mode' : 'Light mode'}
           </button>
           {perms.canExport && <button type="button" className="mm-btn mm-btn-gold" style={{ justifyContent: 'center' }} onClick={exportExcel}><IconDownload /> Export Excel</button>}
           {perms.canImport && (
@@ -510,15 +515,15 @@ export function App({ role, onLogout }) {
           )}
           {saving && <p style={{ fontSize: '11px', color: '#8892B0', margin: '4px 8px 0' }}>Saving…</p>}
           <p style={{ fontSize: '11px', margin: '4px 8px 0', color: loadError ? '#E08A8A' : '#8FD19E' }}>
-            {loadError ? `● ${loadError}` : '● Connected to Supabase'}
+            ● Synced
           </p>
           <p style={{ fontSize: '11px', color: '#6B7396', margin: '0 8px' }}>{bookings.length} bookings logged</p>
           <div style={{ borderTop: '1px solid #2E3A5C', marginTop: '6px', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 8px 0' }}>
             <p style={{ fontSize: '11px', color: '#C9CCDA', margin: 0 }}>Signed in as <b>{perms.label}</b></p>
-            <button type="button" onClick={onLogout} style={{ background: 'none', border: 'none', color: '#8892B0', fontSize: '11px', textDecoration: 'underline', cursor: 'pointer' }}>Sign out</button>
+            <button type="button" onClick={onLogout} style={{ background: 'none', border: 'none', color: '#8892B0', fontSize: '11px', textDecoration: 'underline', cursor: 'pointer' }}>Switch user</button>
           </div>
           {perms.canClear && <button type="button" onClick={() => setShowResetConfirm(true)} style={{ background: 'none', border: 'none', color: '#8A5461', fontSize: '11px', textDecoration: 'underline', cursor: 'pointer', padding: '2px 8px', textAlign: 'left' }}>Clear all data</button>}
-          {role === 'admin' && <button type="button" onClick={() => setShowPasswordsModal(true)} style={{ background: 'none', border: 'none', color: '#8892B0', fontSize: '11px', textDecoration: 'underline', cursor: 'pointer', padding: '2px 8px', textAlign: 'left' }}>Team & passwords</button>}
+          {role === 'admin' && <button type="button" onClick={() => setShowPasswordsModal(true)} style={{ background: 'none', border: 'none', color: '#8892B0', fontSize: '11px', textDecoration: 'underline', cursor: 'pointer', padding: '2px 8px', textAlign: 'left' }}>Change passwords</button>}
         </div>
       </div>
 

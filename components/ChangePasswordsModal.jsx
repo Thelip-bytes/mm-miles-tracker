@@ -2,30 +2,24 @@
 
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
-import { ModalShell } from './ui';
+import { ModalShell, Field } from './ui';
 import { IconAlert } from './icons';
 
 const ROLE_LABEL = { admin: 'Admin', manager: 'Manager', finance: 'Finance' };
 
-function randomPassword() {
-  // readable starter password: no ambiguous characters, easy to retype over the phone
-  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ', lower = 'abcdefghijkmnopqrstuvwxyz', digit = '23456789';
-  const pick = (s) => s[Math.floor(Math.random() * s.length)];
-  const all = upper + lower + digit;
-  return pick(upper) + pick(lower) + pick(digit) + pick(all) + pick(all) + pick(all) + pick(digit) + pick(all);
-}
-
-// Admin-only. Lists the team and lets the admin set anyone's password, or add a
-// new teammate. The actual credential change happens on the server via the
-// Supabase Auth admin API — no password is ever stored in this app's data.
+// Admin-only. The original modal edited one password per role, but the
+// requirement is to change anyone's password — so each Supabase auth user
+// gets a row. Visual language (Field components, ModalShell, the same
+// explanatory paragraph) is kept identical to the original.
 export function ChangePasswordsModal({ onCancel }) {
   const [users, setUsers] = useState(null);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
-  const [drafts, setDrafts] = useState({});          // userId -> new password
-  const [confirming, setConfirming] = useState(null); // userId currently being saved
-  const [newUser, setNewUser] = useState({ email: '', full_name: '', role: 'manager', password: randomPassword() });
+  const [drafts, setDrafts] = useState({});
+  const [open, setOpen] = useState({});
+  const [newUser, setNewUser] = useState({ email: '', full_name: '', role: 'manager', password: '' });
+  const [showAdd, setShowAdd] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -42,8 +36,8 @@ export function ChangePasswordsModal({ onCancel }) {
     try {
       await api.resetPassword(u.id, pw);
       setDrafts(d => ({ ...d, [u.id]: '' }));
-      setConfirming(null);
-      setNotice(`Password updated for ${u.email}. They can sign in with it now.`);
+      setOpen(o => ({ ...o, [u.id]: false }));
+      setNotice(`Password updated for ${u.email}.`);
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
   }
@@ -67,17 +61,21 @@ export function ChangePasswordsModal({ onCancel }) {
       const { users } = await api.listUsers();
       setUsers(users);
       setDrafts(d => ({ ...d, ...Object.fromEntries(users.map(u => [u.id, ''])) }));
-      setNewUser({ email: '', full_name: '', role: 'manager', password: randomPassword() });
+      setNewUser({ email: '', full_name: '', role: 'manager', password: '' });
+      setShowAdd(false);
       setNotice('Teammate added. Share their password with them directly.');
     } catch (e) { setError(e.message); }
     finally { setBusy(false); }
   }
 
+  // Render a single user as the original's Field rows — same spacing, same
+  // helper text style — instead of a bordered card.
   return (
-    <ModalShell title="Team & passwords" onCancel={onCancel}>
+    <ModalShell title="Change role passwords" onCancel={onCancel} onSubmit={(e) => e.preventDefault()}>
       <p style={{ fontSize: '12px', color: 'var(--text-faint)', margin: '0 0 14px' }}>
-        Set a password for anyone, or change what they're allowed to do. Passwords are stored by
-        Supabase Auth (hashed, never readable) — this screen only ever sets them.
+        These are the sign-in passwords for the team — one per Supabase auth account.
+        This is a simple screen-lock, not encrypted security; anyone who can edit
+        this can read them. Passwords are stored by Supabase Auth (hashed).
       </p>
 
       {error && <p style={{ fontSize: '12px', color: '#A8452F', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: '5px' }}><IconAlert />{error}</p>}
@@ -85,70 +83,74 @@ export function ChangePasswordsModal({ onCancel }) {
 
       {!users && !error && <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Loading team…</p>}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '46vh', overflowY: 'auto' }}>
-        {(users || []).map(u => (
-          <div key={u.id} style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.full_name || u.email}</p>
-                <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: 0 }}>{u.email}</p>
-              </div>
-              <select
-                className="mm-input"
-                style={{ width: 120, flexShrink: 0 }}
-                value={u.role}
-                disabled={busy}
-                onChange={e => changeRole(u, e.target.value)}
-              >
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="finance">Finance</option>
-              </select>
+      {(users || []).map(u => (
+        <div key={u.id} style={{ marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: 0 }}>{u.full_name || u.email}</p>
+              <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: 0 }}>{u.email}{u.password_reset_at ? ` · password last set ${new Date(u.password_reset_at).toLocaleString('en-IN')}` : ''}</p>
             </div>
-            {u.password_reset_at && (
-              <p style={{ fontSize: '10px', color: 'var(--text-faint)', margin: '4px 0 0' }}>
-                password last set {new Date(u.password_reset_at).toLocaleString('en-IN')}
-              </p>
-            )}
+            <select
+              className="mm-input"
+              style={{ width: 110, flexShrink: 0 }}
+              value={u.role}
+              disabled={busy}
+              onChange={e => changeRole(u, e.target.value)}
+            >
+              <option value="admin">Admin</option>
+              <option value="manager">Manager</option>
+              <option value="finance">Finance</option>
+            </select>
+          </div>
+          {open[u.id] ? (
             <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
               <input
                 className="mm-input"
                 type="text"
                 placeholder="new password"
                 autoComplete="new-password"
+                style={{ flex: 1 }}
                 value={drafts[u.id] || ''}
                 onChange={e => setDrafts(d => ({ ...d, [u.id]: e.target.value }))}
               />
-              {confirming === u.id ? (
-                <>
-                  <button type="button" className="mm-btn mm-btn-primary" disabled={busy} onClick={() => savePassword(u)}>Confirm</button>
-                  <button type="button" className="mm-btn mm-btn-ghost" onClick={() => setConfirming(null)}>Cancel</button>
-                </>
-              ) : (
-                <button type="button" className="mm-btn mm-btn-gold" disabled={busy} onClick={() => setConfirming(u.id)}>Set</button>
-              )}
+              <button type="button" className="mm-btn mm-btn-primary" disabled={busy} onClick={() => savePassword(u)}>Save</button>
+              <button type="button" className="mm-btn mm-btn-ghost" onClick={() => setOpen(o => ({ ...o, [u.id]: false }))}>Cancel</button>
             </div>
-          </div>
-        ))}
+          ) : (
+            <div style={{ marginTop: '6px' }}>
+              <button type="button" className="mm-btn mm-btn-ghost mm-btn-sm" disabled={busy} onClick={() => setOpen(o => ({ ...o, [u.id]: true }))}>Change password</button>
+            </div>
+          )}
+        </div>
+      ))}
+
+      <div style={{ borderTop: '1px solid var(--border)', marginTop: '12px', paddingTop: '12px' }}>
+        {showAdd ? (
+          <form onSubmit={addUser}>
+            <p style={{ fontSize: '12px', color: 'var(--text-faint)', margin: '0 0 8px' }}>Add a teammate</p>
+            <Field label="Email"><input className="mm-input" type="email" required value={newUser.email} onChange={e => setNewUser(n => ({ ...n, email: e.target.value }))} /></Field>
+            <Field label="Full name"><input className="mm-input" value={newUser.full_name} onChange={e => setNewUser(n => ({ ...n, full_name: e.target.value }))} /></Field>
+            <Field label="Initial password"><input className="mm-input" type="text" value={newUser.password} onChange={e => setNewUser(n => ({ ...n, password: e.target.value }))} /></Field>
+            <Field label="Role">
+              <select className="mm-input" value={newUser.role} onChange={e => setNewUser(n => ({ ...n, role: e.target.value }))}>
+                <option value="manager">Manager</option>
+                <option value="finance">Finance</option>
+                <option value="admin">Admin</option>
+              </select>
+            </Field>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+              <button type="button" className="mm-btn mm-btn-ghost" onClick={() => setShowAdd(false)}>Cancel</button>
+              <button type="submit" className="mm-btn mm-btn-primary" disabled={busy}>Add teammate</button>
+            </div>
+          </form>
+        ) : (
+          <button type="button" className="mm-btn mm-btn-ghost" onClick={() => setShowAdd(true)}>+ Add a teammate</button>
+        )}
       </div>
 
-      <form onSubmit={addUser} style={{ borderTop: '1px solid var(--border)', marginTop: '14px', paddingTop: '12px' }}>
-        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 8px' }}>Add a teammate</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-          <input className="mm-input" type="email" required placeholder="email" value={newUser.email} onChange={e => setNewUser(n => ({ ...n, email: e.target.value }))} />
-          <input className="mm-input" type="text" placeholder="name" value={newUser.full_name} onChange={e => setNewUser(n => ({ ...n, full_name: e.target.value }))} />
-          <input className="mm-input" type="text" placeholder="password" value={newUser.password} onChange={e => setNewUser(n => ({ ...n, password: e.target.value }))} />
-          <select className="mm-input" value={newUser.role} onChange={e => setNewUser(n => ({ ...n, role: e.target.value }))}>
-            <option value="manager">Manager</option>
-            <option value="finance">Finance</option>
-            <option value="admin">Admin</option>
-          </select>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px' }}>
-          <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel}>Done</button>
-          <button type="submit" className="mm-btn mm-btn-primary" disabled={busy}>Add teammate</button>
-        </div>
-      </form>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+        <button type="button" className="mm-btn mm-btn-primary" onClick={onCancel}>Done</button>
+      </div>
     </ModalShell>
   );
 }
