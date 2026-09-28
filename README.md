@@ -29,12 +29,6 @@ only · `pg` on the server for data.
 These were created with the easy passwords you asked for. The admin should
 change them from the **Team & passwords** screen on first login.
 
-| Role     | Email                    | Password      |
-|----------|--------------------------|---------------|
-| Admin    | admin@mmmiles.com        | `admin123`    |
-| Manager  | manager@mmmiles.com      | `manager123`  |
-| Finance  | finance@mmmiles.com      | `finance123`  |
-
 ---
 
 ## Environment variables
