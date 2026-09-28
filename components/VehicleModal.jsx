@@ -44,12 +44,12 @@ export function VehicleModal({ form, hosts, onCancel, onSave }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         <Field label="Fuel type">
           <select className="mm-input" value={data.fuel || 'Petrol'} onChange={e => set('fuel', e.target.value)}>
-            {['Petrol', 'Diesel', 'CNG', 'Electric', 'Hybrid'].map(f => <option key={f}>{f}</option>)}
+            {['petrol', 'diesel', 'cng', 'electric', 'hybrid'].map(f => <option key={f}>{f}</option>)}
           </select>
         </Field>
         <Field label="Transmission">
           <select className="mm-input" value={data.transmission || 'Automatic'} onChange={e => set('transmission', e.target.value)}>
-            {['Automatic', 'Manual'].map(t => <option key={t}>{t}</option>)}
+            {['automatic', 'manual'].map(t => <option key={t}>{t}</option>)}
           </select>
         </Field>
       </div>
