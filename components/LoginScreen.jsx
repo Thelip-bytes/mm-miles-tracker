@@ -39,9 +39,6 @@ export function LoginScreen() {
             <IconLock size={14} /> {busy ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
-        <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '18px 0 0' }}>
-          First time here? An admin can create your login and set your password from the admin screen.
-        </p>
       </div>
     </div>
   );
