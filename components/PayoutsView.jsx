@@ -1,0 +1,115 @@
+"use client";
+
+import { useState, useEffect, useMemo, useRef, Fragment } from 'react';
+import {
+  IconPlus, IconTrash, IconEdit, IconDownload, IconSearch, IconClose, IconAlert,
+  IconGrid, IconCar, IconKey, IconUsers, IconReceipt, IconWallet, IconChevron,
+  IconSun, IconMoon, IconUpload, IconEye, IconLock, IconCamera
+} from './icons';
+import { Field, StatCard, Stub, EmptyState, ModalShell, PayoutBreakdown, LinkedEntriesList, ChargeRow } from './ui';
+import {
+  HOST_PAYOUT_CATEGORY, REFUND_CATEGORY, EXPENSE_CATEGORIES, INCOME_CATEGORIES,
+  PIE_COLORS, DAMAGE_KM_RATE, REFUND_TIERS, REQUIRED_ALWAYS, MULTIDAY_DISCOUNT_TIERS,
+  ROLE_PERMS
+} from '@/lib/constants';
+import {
+  refundTierFor, multiDayDiscountFor, uid, todayStr, nowLocal, money, monthKey,
+  monthLabel, nextBookingCode, safeGet, safeSet, getCol, pad2, toLocalInputStr,
+  toDateInputStr, parseFlexibleDateTime, parseFlexibleDate, numOrBlank,
+  compressImageFile, migrateTransactions
+} from '@/lib/helpers';
+import { computeBooking } from '@/lib/computeBooking';
+
+export function PayoutsView({ bookings, allEnriched, transactions, vehicleLabel, filter, setFilter, search, setSearch, onRecordPayout }) {
+  const active = allEnriched.filter(b => b.status !== 'cancelled' && b.status !== 'no-show');
+  const thisMonth = monthKey(todayStr());
+  const totalPending = active.reduce((s, b) => s + b.calc.payoutBalance, 0);
+  const totalPaidThisMonth = transactions.filter(t => t.type === 'expense' && t.category === HOST_PAYOUT_CATEGORY && monthKey(t.date) === thisMonth).reduce((s, t) => s + (Number(t.amount) || 0), 0);
+  const filters = [['all', 'All'], ['pending', 'Pending'], ['partial', 'Partial'], ['paid', 'Paid']];
+  const [expanded, setExpanded] = useState(() => new Set());
+  function toggleExpand(id) { setExpanded(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; }); }
+
+  return (
+    <div>
+      <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: '24px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 4px' }}>Host payouts</h1>
+      <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 16px' }}>What's owed to each host, separate from booking sales. Payouts are logged in the cash flow tab — nothing to mark here manually.</p>
+      <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '18px' }}>
+        Commission tiers: <b style={{ color: 'var(--text-heading)' }}>rental & extra hours</b> at the vehicle/host rate (default 30%) · <b style={{ color: 'var(--text-heading)' }}>extra km & damage</b> at {DAMAGE_KM_RATE}% · <b style={{ color: 'var(--text-heading)' }}>fuel, toll & fines</b> pass through at 0%. Click a row's arrow to see the exact math.
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '22px' }}>
+        <StatCard label="Total payout pending" value={totalPending} sub="across all hosts" tone="bad" />
+        <StatCard label="Paid out this month" value={totalPaidThisMonth} tone="good" />
+      </div>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ position: 'relative', flex: 1, maxWidth: '260px' }}>
+          <span style={{ position: 'absolute', left: '10px', top: '9px', color: 'var(--text-faint)' }}><IconSearch /></span>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search booking, vehicle, host" className="mm-input" style={{ paddingLeft: '30px' }} />
+        </div>
+        {filters.map(([f, label]) => (
+          <span key={f} onClick={() => setFilter(f)} style={{ cursor: 'pointer', fontSize: '12px', padding: '6px 12px', borderRadius: '20px', background: filter === f ? 'var(--text-heading)' : 'var(--card-bg)', color: filter === f ? 'var(--page-bg)' : 'var(--text-muted)', border: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{label}</span>
+        ))}
+      </div>
+      {bookings.length === 0 ? <EmptyState text="No payouts match. Bookings will show up here once rentals are logged." /> : (
+        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+          <table>
+            <thead>
+              <tr>
+                <th className="mm-th" style={{ width: '28px' }}></th>
+                <th className="mm-th">Booking</th>
+                <th className="mm-th">Vehicle · host</th>
+                <th className="mm-th" style={{ textAlign: 'right' }}>Rental</th>
+                <th className="mm-th" style={{ textAlign: 'right' }}>Extras</th>
+                <th className="mm-th" style={{ textAlign: 'right' }}>Commission</th>
+                <th className="mm-th" style={{ textAlign: 'right' }}>Owed to host</th>
+                <th className="mm-th" style={{ textAlign: 'right' }}>Balance</th>
+                <th className="mm-th">Status</th>
+                <th className="mm-th"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {bookings.map(b => {
+                const isOpen = expanded.has(b.id);
+                const payoutEntries = transactions.filter(t => t.type === 'expense' && t.category === HOST_PAYOUT_CATEGORY && t.bookingId === b.id);
+                return (
+                  <Fragment key={b.id}>
+                    <tr>
+                      <td className="mm-td">
+                        <button type="button" className="mm-icon-btn" onClick={() => toggleExpand(b.id)} style={{ transform: isOpen ? 'rotate(180deg)' : 'none' }}><IconChevron /></button>
+                      </td>
+                      <td className="mm-td" style={{ fontFamily: '"IBM Plex Mono", monospace', fontWeight: 600 }}>{b.code}</td>
+                      <td className="mm-td">
+                        <div style={{ fontSize: '13px' }}>{vehicleLabel(b.calc.vehicle)}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{b.calc.host ? b.calc.host.name : '—'}</div>
+                      </td>
+                      <td className="mm-td" style={{ textAlign: 'right', fontFamily: '"IBM Plex Mono", monospace' }}>₹{money(b.calc.rental)}</td>
+                      <td className="mm-td" style={{ textAlign: 'right', fontFamily: '"IBM Plex Mono", monospace', color: 'var(--text-muted)' }}>₹{money(b.calc.extras)}</td>
+                      <td className="mm-td" style={{ textAlign: 'right', fontFamily: '"IBM Plex Mono", monospace', color: '#A8452F' }}>₹{money(b.calc.totalCommission)}</td>
+                      <td className="mm-td" style={{ textAlign: 'right', fontFamily: '"IBM Plex Mono", monospace', fontWeight: 600, color: '#B8863C' }}>₹{money(b.calc.hostPayout)}</td>
+                      <td className="mm-td" style={{ textAlign: 'right', fontFamily: '"IBM Plex Mono", monospace', color: b.calc.payoutBalance > 0 ? '#A8452F' : '#3F6B4F' }}>₹{money(b.calc.payoutBalance)}</td>
+                      <td className="mm-td">
+                        <span className="mm-tag" style={{ background: b.calc.payoutStatus === 'paid' ? '#E1EFE4' : b.calc.payoutStatus === 'partial' ? '#FBEFD9' : 'var(--border-light)', color: b.calc.payoutStatus === 'paid' ? '#3F6B4F' : b.calc.payoutStatus === 'partial' ? '#8A5E1E' : '#6B6555', textTransform: 'capitalize' }}>{b.calc.payoutStatus}</span>
+                      </td>
+                      <td className="mm-td">
+                        {b.calc.payoutStatus !== 'paid' && (
+                          <button type="button" className="mm-btn mm-btn-gold mm-btn-sm" onClick={() => onRecordPayout(b)}>Log payout</button>
+                        )}
+                      </td>
+                    </tr>
+                    {isOpen && (
+                      <tr>
+                        <td className="mm-td" colSpan="10" style={{ background: 'var(--page-bg)' }}>
+                          <PayoutBreakdown calc={b.calc} />
+                          <LinkedEntriesList entries={payoutEntries} emptyText="No payout logged yet for this booking." />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
