@@ -10,7 +10,11 @@ import {
 } from '@/lib/helpers';
 import {
   IconGrid, IconCar, IconKey, IconUsers, IconWallet, IconReceipt,
+<<<<<<< HEAD
   IconSun, IconMoon, IconDownload, IconUpload
+=======
+  IconSun, IconMoon, IconDownload, IconUpload, IconMenu, IconClose
+>>>>>>> 07f5e40 (mobile)
 } from './icons';
 import { Overview } from './Overview';
 import { Bookings } from './Bookings';
@@ -93,10 +97,31 @@ export function App({ role, onLogout }) {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showPasswordsModal, setShowPasswordsModal] = useState(false);
+<<<<<<< HEAD
+=======
+  // the sidebar is a slide-in drawer on tablets and phones (see .mm-sidebar)
+  const [navOpen, setNavOpen] = useState(false);
+>>>>>>> 07f5e40 (mobile)
   const fileInputRef = useRef(null);
 
   useEffect(() => { document.body.setAttribute('data-theme', theme); safeSet('mm-theme', theme); }, [theme]);
 
+<<<<<<< HEAD
+=======
+  useEffect(() => {
+    if (!navOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setNavOpen(false); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navOpen]);
+
+  function selectTab(id) {
+    setTab(id);
+    setNavOpen(false);
+    window.scrollTo(0, 0);
+  }
+
+>>>>>>> 07f5e40 (mobile)
   // one load, then every mutation re-runs it — the database is the source of
   // truth, so there is no local cache that could drift out of sync
   const reload = useMemo(() => async () => {
@@ -478,7 +503,11 @@ export function App({ role, onLogout }) {
   if (loadError && bookings.length === 0) {
     return (
       <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif' }}>
+<<<<<<< HEAD
         <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '14px', padding: '28px', maxWidth: '460px', textAlign: 'center' }}>
+=======
+        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '14px', padding: '28px', maxWidth: '460px', margin: '0 16px', textAlign: 'center' }}>
+>>>>>>> 07f5e40 (mobile)
           <p style={{ fontSize: '14px', fontWeight: 600, color: '#A8452F', margin: '0 0 8px' }}>Couldn't load the ledger</p>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 16px' }}>{loadError}</p>
           <button type="button" className="mm-btn mm-btn-primary" onClick={() => { setLoading(true); reload(); }}>Try again</button>
@@ -488,6 +517,7 @@ export function App({ role, onLogout }) {
   }
 
   return (
+<<<<<<< HEAD
     <div style={{ display: 'flex', width: '100%', maxWidth: '1280px', minHeight: '80vh', fontFamily: 'Inter, sans-serif', background: 'var(--page-bg)', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 1px 3px rgba(28,37,65,0.08)' }}>
       <div style={{ width: '220px', flexShrink: 0, background: '#1C2541', padding: '20px 12px', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '4px 8px 20px' }}>
@@ -497,6 +527,28 @@ export function App({ role, onLogout }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {navItems.map(item => (
             <div key={item.id} className={`mm-nav-item ${tab === item.id ? 'active' : ''}`} onClick={() => setTab(item.id)}>
+=======
+    <div className="mm-shell">
+      <header className="mm-topbar">
+        <img src="/logo.png" alt="MM Miles" style={{ height: '26px', width: 'auto', display: 'block' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {saving && <span style={{ fontSize: '11px', color: '#8892B0' }}>Saving…</span>}
+          <button type="button" className="mm-topbar-btn" aria-label="Open menu" onClick={() => setNavOpen(true)}><IconMenu size={20} /></button>
+        </div>
+      </header>
+      {navOpen && <div className="mm-backdrop" onClick={() => setNavOpen(false)} />}
+      <aside className={`mm-sidebar${navOpen ? ' open' : ''}`}>
+        <div style={{ padding: '4px 8px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+          <div>
+            <img src="/logo.png" alt="MM Miles" style={{ height: '40px', width: 'auto', display: 'block' }} />
+            <p style={{ fontSize: '11px', color: '#8892B0', margin: '2px 0 0' }}>Self-drive rental ledger</p>
+          </div>
+          <button type="button" className="mm-icon-btn mm-sidebar-close" aria-label="Close menu" onClick={() => setNavOpen(false)}><IconClose /></button>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          {navItems.map(item => (
+            <div key={item.id} className={`mm-nav-item ${tab === item.id ? 'active' : ''}`} onClick={() => selectTab(item.id)}>
+>>>>>>> 07f5e40 (mobile)
               <item.Icon size={16} />{item.label}
             </div>
           ))}
@@ -525,9 +577,15 @@ export function App({ role, onLogout }) {
           {perms.canClear && <button type="button" onClick={() => setShowResetConfirm(true)} style={{ background: 'none', border: 'none', color: '#8A5461', fontSize: '11px', textDecoration: 'underline', cursor: 'pointer', padding: '2px 8px', textAlign: 'left' }}>Clear all data</button>}
           {role === 'admin' && <button type="button" onClick={() => setShowPasswordsModal(true)} style={{ background: 'none', border: 'none', color: '#8892B0', fontSize: '11px', textDecoration: 'underline', cursor: 'pointer', padding: '2px 8px', textAlign: 'left' }}>Change passwords</button>}
         </div>
+<<<<<<< HEAD
       </div>
 
       <div style={{ flex: 1, padding: '24px 28px', overflowY: 'auto', maxHeight: '90vh' }}>
+=======
+      </aside>
+
+      <main className="mm-main">
+>>>>>>> 07f5e40 (mobile)
         {tab === 'overview' && perms.tabs.includes('overview') && <Overview stats={stats} chartData={chartData} paymentModeData={paymentModeData} bookings={enriched} vehicleLabel={vehicleLabel} customerName={customerName} theme={theme} />}
         {tab === 'bookings' && perms.tabs.includes('bookings') && (
           <Bookings bookings={filteredBookings} vehicles={vehicles} filter={bookingFilter} setFilter={setBookingFilter} search={search} setSearch={setSearch}
@@ -564,7 +622,11 @@ export function App({ role, onLogout }) {
             onEdit={(t) => setTransactionForm(t)}
             onDelete={(id) => setDeleteConfirm({ type: 'transaction', id, label: `${(transactions.find(t => t.id === id) || {}).category || 'entry'}` })} />
         )}
+<<<<<<< HEAD
       </div>
+=======
+      </main>
+>>>>>>> 07f5e40 (mobile)
 
       {bookingForm && <BookingModal form={bookingForm} vehicles={vehicles} hosts={hosts} customers={customers} transactions={transactions} bookings={bookings} onCancel={() => setBookingForm(null)} onSave={saveBooking} onQuickAddCustomer={quickAddCustomer} readOnly={!perms.canEditBooking(bookingForm)} canFinance={perms.canFinance} canOverridePrice={perms.canOverridePrice} canBypassTimeGuards={perms.canBypassTimeGuards} />}
       {vehicleForm && <VehicleModal form={vehicleForm} hosts={hosts} onCancel={() => setVehicleForm(null)} onSave={saveVehicle} />}

@@ -37,11 +37,19 @@ export function CustomerModal({ form, onCancel, onSave }) {
   return (
     <ModalShell title={data.id ? 'Edit customer' : 'New customer'} onCancel={onCancel} onSubmit={submit}>
       <Field label="Name *"><input required className="mm-input" value={data.name || ''} onChange={e => set('name', e.target.value)} /></Field>
+<<<<<<< HEAD
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         <Field label="Aadhar number *"><input required placeholder="XXXX XXXX XXXX" className="mm-input" style={{ fontFamily: '"IBM Plex Mono", monospace' }} value={data.aadhar || ''} onChange={e => set('aadhar', e.target.value)} /></Field>
         <Field label="License number *"><input required placeholder="DL number" className="mm-input" style={{ fontFamily: '"IBM Plex Mono", monospace' }} value={data.licenseNumber || ''} onChange={e => set('licenseNumber', e.target.value)} /></Field>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+=======
+      <div className="mm-form-grid">
+        <Field label="Aadhar number *"><input required placeholder="XXXX XXXX XXXX" className="mm-input" style={{ fontFamily: '"IBM Plex Mono", monospace' }} value={data.aadhar || ''} onChange={e => set('aadhar', e.target.value)} /></Field>
+        <Field label="License number *"><input required placeholder="DL number" className="mm-input" style={{ fontFamily: '"IBM Plex Mono", monospace' }} value={data.licenseNumber || ''} onChange={e => set('licenseNumber', e.target.value)} /></Field>
+      </div>
+      <div className="mm-form-grid">
+>>>>>>> 07f5e40 (mobile)
         <Field label="Phone"><input className="mm-input" value={data.phone || ''} onChange={e => set('phone', e.target.value)} /></Field>
         <Field label="Address *"><input required className="mm-input" value={data.address || ''} onChange={e => set('address', e.target.value)} /></Field>
       </div>
@@ -49,13 +57,21 @@ export function CustomerModal({ form, onCancel, onSave }) {
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
         <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 4px' }}>Photos</p>
         <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '0 0 10px' }}>Optional, but useful for verification. On a phone this opens the camera directly; on a computer it opens a file picker. Photos are compressed and stored with the customer record.</p>
+<<<<<<< HEAD
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+=======
+        <div className="mm-form-grid" style={{ '--cols': 'repeat(3, minmax(0, 1fr))', gap: '10px' }}>
+>>>>>>> 07f5e40 (mobile)
           <PhotoCapture label="Renter photo" value={data.photo || ''} onChange={(v) => set('photo', v)} />
           <PhotoCapture label="Aadhar card" value={data.aadharPhoto || ''} onChange={(v) => set('aadharPhoto', v)} />
           <PhotoCapture label="License" value={data.licensePhoto || ''} onChange={(v) => set('licensePhoto', v)} />
         </div>
       </div>
+<<<<<<< HEAD
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+=======
+      <div className="mm-modal-actions">
+>>>>>>> 07f5e40 (mobile)
         <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel}>Cancel</button>
         <button type="submit" className="mm-btn mm-btn-primary">Save customer</button>
       </div>

@@ -8,11 +8,22 @@
     --page-bg: #1B2338; --card-bg: #232C48; --input-bg: #1A2140; --border: #3A4568; --border-light: #2E3654;
     --text-heading: #EDEEF5; --text-muted: #A8AEC4; --text-faint: #7C82A0; --page-backdrop: #10142A; --hover-bg: #2E3654;
   }
+<<<<<<< HEAD
   html, body { margin: 0; padding: 0; background: var(--page-backdrop); font-family: 'Inter', sans-serif; transition: background .2s; }
+=======
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  html, body { margin: 0; padding: 0; background: var(--page-backdrop); font-family: 'Inter', sans-serif; transition: background .2s; }
+  img { max-width: 100%; }
+>>>>>>> 07f5e40 (mobile)
   .mm-app-root { min-height: 100vh; display: flex; justify-content: center; padding: 24px; }
   input, select, textarea { font-family: 'Inter', sans-serif; font-size: 13px; }
   input:focus, select:focus, textarea:focus { outline: 2px solid #B8863C; outline-offset: -1px; }
   input:disabled { opacity: 0.6; }
+<<<<<<< HEAD
+=======
+  input[type="date"], input[type="datetime-local"] { min-width: 0; }
+  input::-webkit-date-and-time-value { text-align: left; }
+>>>>>>> 07f5e40 (mobile)
   button { font-family: 'Inter', sans-serif; }
   table { border-collapse: collapse; width: 100%; }
   .mm-nav-item { display:flex; align-items:center; gap:10px; padding:10px 16px; border-radius:8px; cursor:pointer; font-size:14px; color:#C9CCDA; transition:background .15s; }
@@ -33,3 +44,161 @@
   .mm-input { width:100%; padding:8px 10px; border-radius:6px; background:var(--input-bg); border:1px solid var(--border); color:var(--text-heading); }
   .mm-th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text-faint); padding: 10px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .mm-td { padding: 10px 10px; font-size: 13px; color: var(--text-heading); border-bottom: 1px solid var(--border-light); vertical-align: middle; }
+<<<<<<< HEAD
+=======
+
+  /* ------------------------------------------------------------ app shell */
+  /* Fixed sidebar on desktop; below 900px it becomes a slide-in drawer
+     opened from a sticky top bar. */
+  .mm-shell { display: flex; width: 100%; max-width: 1280px; min-height: 80vh; font-family: 'Inter', sans-serif; background: var(--page-bg); border-radius: 12px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(28,37,65,0.08); }
+  .mm-sidebar { width: 220px; flex-shrink: 0; background: #1C2541; padding: 20px 12px; display: flex; flex-direction: column; }
+  .mm-sidebar .mm-icon-btn { color: #C9CCDA; }
+  .mm-sidebar .mm-icon-btn:hover { background: #2E3A5C; color: #FFFFFF; }
+  .mm-main { flex: 1; min-width: 0; padding: 24px 28px; overflow-y: auto; max-height: 90vh; }
+  .mm-topbar { align-items: center; justify-content: space-between; gap: 10px; position: sticky; top: 0; z-index: 30; background: #1C2541; padding: 10px 12px 10px 16px; }
+  .mm-topbar-btn { background: none; border: none; color: #C9CCDA; padding: 8px; border-radius: 8px; display: inline-flex; cursor: pointer; }
+  .mm-topbar-btn:hover { background: #2E3A5C; }
+  .mm-backdrop { position: fixed; inset: 0; z-index: 40; background: rgba(16,20,42,0.5); touch-action: none; }
+  .mm-topbar, .mm-backdrop, .mm-sidebar-close { display: none; }
+
+  /* ----------------------------------------------------------- page parts */
+  .mm-page-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .mm-h1 { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 600; color: var(--text-heading); margin: 0; }
+  .mm-stat { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; position: relative; overflow: hidden; min-width: 0; }
+  .mm-stat-value { font-family: "IBM Plex Mono", monospace; font-size: 21px; font-weight: 600; color: var(--text-heading); margin: 0 0 2px 2px; overflow-wrap: anywhere; }
+
+  .mm-stats-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .mm-stats-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+  .mm-stats-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .mm-split { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; }
+  .mm-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  /* Form rows are two-up by default; set --cols on the element for another
+     desktop layout. Every form grid stacks to one column on phones. */
+  .mm-form-grid { display: grid; grid-template-columns: var(--cols, minmax(0, 1fr) minmax(0, 1fr)); gap: 12px; }
+  .mm-charge-row { display: grid; grid-template-columns: 90px 110px 1fr; gap: 8px; align-items: center; }
+  .mm-kv-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 2px 12px; }
+
+  /* search box + filter chips */
+  .mm-toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .mm-search { position: relative; flex: 1; max-width: 260px; }
+  .mm-chips { display: flex; gap: 10px; flex-wrap: wrap; flex: 1 1 0; min-width: 0; }
+  .mm-chip { cursor: pointer; font-size: 12px; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); white-space: nowrap; background: var(--card-bg); color: var(--text-muted); }
+  .mm-chip.active { background: var(--text-heading); color: var(--page-bg); }
+
+  .mm-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .mm-table-wrap > table { min-width: 760px; }
+
+  /* List rows: a flat, wrapping flex row on desktop; a small grid on phones.
+     The *-tags / *-meta groups use display:contents so their children sit
+     directly in the desktop row. */
+  .mm-bk-row { display: flex; align-items: center; padding: 14px 16px; gap: 16px; flex-wrap: wrap; }
+  .mm-bk-code { min-width: 70px; }
+  .mm-bk-main { flex: 1; min-width: 200px; }
+  .mm-bk-money { text-align: right; min-width: 110px; }
+  .mm-bk-tags { display: contents; }
+  .mm-bk-actions { display: flex; gap: 2px; }
+
+  .mm-v-row { display: flex; align-items: center; padding: 12px 16px; flex-wrap: wrap; gap: 6px; }
+  .mm-v-reg { width: 120px; }
+  .mm-v-desc { flex: 1; min-width: 180px; }
+  .mm-v-meta { display: contents; }
+  .mm-v-actions { display: flex; gap: 2px; }
+
+  .mm-e-row { display: flex; align-items: center; padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+  .mm-e-date { width: 84px; }
+  .mm-e-tags { display: contents; }
+  .mm-e-note { flex: 1; min-width: 80px; }
+  .mm-e-actions { display: flex; gap: 2px; }
+
+  /* ---------------------------------------------------------------- modals */
+  .mm-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(28,37,65,0.45); display: flex; align-items: center; justify-content: center; }
+  .mm-modal { background: var(--page-bg); border-radius: 12px; width: 440px; max-width: 92vw; max-height: 88vh; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--border); }
+  .mm-modal.wide { width: 580px; }
+  .mm-modal-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 1; background: var(--page-bg); }
+  .mm-modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+  .mm-modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+  /* ------------------------------------------------ tablet (drawer nav) */
+  @media (max-width: 1100px) {
+    .mm-stats-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 900px) {
+    .mm-app-root { padding: 0; }
+    .mm-shell { flex-direction: column; min-height: 100vh; min-height: 100dvh; border: none; border-radius: 0; box-shadow: none; overflow: visible; }
+    .mm-topbar { display: flex; }
+    .mm-backdrop { display: block; }
+    .mm-sidebar-close { display: inline-flex; }
+    .mm-sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 45; width: min(280px, 84vw); overflow-y: auto; overscroll-behavior: contain; transform: translateX(-100%); transition: transform .22s ease; }
+    .mm-sidebar.open { transform: none; box-shadow: 4px 0 24px rgba(0,0,0,0.3); }
+    .mm-main { max-height: none; overflow: visible; padding: 20px; }
+    .mm-split { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  /* ---------------------------------------------------------------- phone */
+  /* Keep in sync with PHONE_QUERY in lib/useMediaQuery.js */
+  @media (max-width: 640px) {
+    .mm-main { padding: 16px 16px 28px; }
+    .mm-h1 { font-size: 21px; }
+    .mm-hide-mobile { display: none !important; }
+
+    /* 16px text stops iOS zooming into focused fields */
+    input, select, textarea { font-size: 16px; }
+    .mm-input { padding: 9px 10px; }
+    input.mm-input[type="date"], input.mm-input[type="datetime-local"] { min-height: 40px; }
+
+    /* bigger touch targets */
+    .mm-btn { padding: 10px 14px; }
+    .mm-btn-sm { padding: 7px 12px; }
+    .mm-icon-btn { padding: 8px; }
+    .mm-nav-item { padding: 12px 16px; }
+
+    .mm-stat { padding: 12px 14px; }
+    .mm-stat-value { font-size: 17px; }
+    .mm-stats-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .mm-stats-3 > :last-child { grid-column: 1 / -1; }
+    .mm-card-grid { grid-template-columns: minmax(0, 1fr); }
+    .mm-form-grid { grid-template-columns: minmax(0, 1fr); }
+    .mm-form-grid > div:empty { display: none; }
+    .mm-charge-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .mm-charge-note { grid-column: 1 / -1; }
+
+    /* nowrap matters: a wrapping column flexbox sizes its line to the widest
+       item (the unscrolled chip row), which would widen the whole page */
+    .mm-toolbar { flex-direction: column; flex-wrap: nowrap; align-items: stretch; }
+    .mm-search { flex: none; max-width: none; }
+    .mm-chips { flex: none; flex-wrap: nowrap; gap: 8px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .mm-chips::-webkit-scrollbar { display: none; }
+    .mm-chip { padding: 8px 14px; }
+
+    .mm-bk-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "code actions" "main main" "money money" "tags tags"; gap: 8px 12px; padding: 12px 14px; }
+    .mm-bk-code { grid-area: code; min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+    .mm-bk-main { grid-area: main; min-width: 0; }
+    .mm-bk-money { grid-area: money; min-width: 0; text-align: left; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .mm-bk-tags { grid-area: tags; display: flex; flex-wrap: wrap; gap: 6px; }
+    .mm-bk-actions { grid-area: actions; }
+
+    .mm-v-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "status reg actions" "desc desc desc" "meta meta meta"; gap: 6px 10px; padding: 12px 14px; }
+    .mm-v-status { grid-area: status; }
+    .mm-v-reg { grid-area: reg; width: auto; }
+    .mm-v-desc { grid-area: desc; min-width: 0; }
+    .mm-v-meta { grid-area: meta; display: flex; flex-wrap: wrap; row-gap: 6px; }
+    .mm-v-actions { grid-area: actions; }
+
+    .mm-e-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "type date amount" "tags tags tags" "note note actions"; gap: 6px 10px; padding: 12px 14px; }
+    .mm-e-type { grid-area: type; }
+    .mm-e-date { grid-area: date; width: auto; }
+    .mm-e-tags { grid-area: tags; display: flex; flex-wrap: wrap; gap: 6px; }
+    .mm-e-note { grid-area: note; min-width: 0; }
+    .mm-e-amount { grid-area: amount; }
+    .mm-e-actions { grid-area: actions; }
+
+    /* modals become bottom sheets with a pinned action bar */
+    .mm-overlay { align-items: flex-end; }
+    .mm-modal, .mm-modal.wide { width: 100%; max-width: 100%; max-height: 92vh; max-height: 92dvh; border-radius: 14px 14px 0 0; border-bottom: none; }
+    .mm-modal-head { padding: 14px 16px; }
+    .mm-modal-body { padding: 16px; }
+    .mm-modal-actions { position: sticky; bottom: 0; z-index: 1; margin: 4px -16px -16px; padding: 12px 16px; background: var(--page-bg); border-top: 1px solid var(--border); }
+    .mm-modal-actions .mm-btn { flex: 1; justify-content: center; }
+  }
+>>>>>>> 07f5e40 (mobile)

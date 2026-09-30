@@ -148,7 +148,11 @@ export function ChangePasswordsModal({ onCancel }) {
         )}
       </div>
 
+<<<<<<< HEAD
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+=======
+      <div className="mm-modal-actions" style={{ marginTop: '10px' }}>
+>>>>>>> 07f5e40 (mobile)
         <button type="button" className="mm-btn mm-btn-primary" onClick={onCancel}>Done</button>
       </div>
     </ModalShell>

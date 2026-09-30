@@ -27,13 +27,21 @@ export function HostModal({ form, onCancel, onSave }) {
   return (
     <ModalShell title={data.id ? 'Edit host' : 'New host'} onCancel={onCancel} onSubmit={submit}>
       <Field label="Name"><input required placeholder="Mohamed Faiyaz" className="mm-input" value={data.name || ''} onChange={e => set('name', e.target.value)} /></Field>
+<<<<<<< HEAD
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+=======
+      <div className="mm-form-grid">
+>>>>>>> 07f5e40 (mobile)
         <Field label="Phone"><input className="mm-input" value={data.phone || ''} onChange={e => set('phone', e.target.value)} /></Field>
         <Field label="Commission %" hint="on rental & extra hours"><input type="number" min="0" max="100" required className="mm-input" value={data.commissionRate === undefined ? '' : data.commissionRate} onChange={e => set('commissionRate', e.target.value)} /></Field>
       </div>
       <p style={{ fontSize: '12px', color: 'var(--text-faint)', margin: 0 }}>Extra km & damage are always commissioned at a fixed {DAMAGE_KM_RATE}%; fuel, toll & fines pass through at 0% (this platform-wide rule isn't editable per host).</p>
       <Field label="Bank / payout details"><input className="mm-input" value={data.bank || ''} onChange={e => set('bank', e.target.value)} placeholder="Account number / UPI ID" /></Field>
+<<<<<<< HEAD
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+=======
+      <div className="mm-modal-actions">
+>>>>>>> 07f5e40 (mobile)
         <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel}>Cancel</button>
         <button type="submit" className="mm-btn mm-btn-primary">Save host</button>
       </div>
