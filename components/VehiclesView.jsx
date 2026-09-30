@@ -23,13 +23,8 @@ import { computeBooking } from '@/lib/computeBooking';
 export function VehiclesView({ vehicles, hosts, bookings, onAdd, onEdit, onDelete, canEdit, canFinance }) {
   return (
     <div>
-<<<<<<< HEAD
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-        <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: '24px', fontWeight: 600, color: 'var(--text-heading)', margin: 0 }}>Vehicles</h1>
-=======
       <div className="mm-page-head" style={{ marginBottom: '4px' }}>
         <h1 className="mm-h1">Vehicles</h1>
->>>>>>> 07f5e40 (mobile)
         {canEdit && <button type="button" className="mm-btn mm-btn-primary" onClick={onAdd} disabled={hosts.length === 0}><IconPlus /> New vehicle</button>}
       </div>
       <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 20px' }}>{canEdit ? 'The fleet, its km policy, and live status' : 'View-only — ask an admin to add or edit vehicles'}</p>
@@ -40,25 +35,6 @@ export function VehiclesView({ vehicles, hosts, bookings, onAdd, onEdit, onDelet
             const host = hosts.find(h => h.id === v.hostId);
             const isLive = bookings.some(b => b.vehicleId === v.id && b.status === 'ongoing' && !b.calc.isUpcoming);
             return (
-<<<<<<< HEAD
-              <div key={v.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderTop: i === 0 ? 'none' : '1px solid var(--border-light)', flexWrap: 'wrap', gap: '6px' }}>
-                <span className="mm-tag" style={{ background: isLive ? '#E1EFE4' : '#FBEFD9', color: isLive ? '#3F6B4F' : '#8A5E1E', display: 'inline-flex', alignItems: 'center', gap: '5px', width: '58px', justifyContent: 'center', flexShrink: 0 }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isLive ? '#3F6B4F' : '#B8863C', display: 'inline-block', flexShrink: 0 }}></span>
-                  {isLive ? 'Live' : 'Idle'}
-                </span>
-                <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', width: '120px' }}>{v.regNumber}</span>
-                <span style={{ flex: 1, fontSize: '13px', color: 'var(--text-heading)', minWidth: '180px' }}>{v.year ? `${v.year} ` : ''}{v.make} {v.model} · {v.fuel} · {v.transmission}</span>
-                <span className="mm-tag" style={{ background: '#E1EFE4', color: '#3F6B4F', marginRight: '10px' }}>{v.dailyRate ? `₹${money(v.dailyRate)}/day${v.hourlyRate ? ` + ₹${money(v.hourlyRate)}/hr` : ''}` : 'No rate set'}</span>
-                {v.pkg4hrRate > 0 && <span className="mm-tag" style={{ background: '#EEF0FA', color: '#3B4A8C', marginRight: '10px' }}>4hr ₹{money(v.pkg4hrRate)} · 12hr ₹{money(v.pkg12hrRate)}</span>}
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginRight: '10px' }}>{host ? host.name : '—'}</span>
-                <span className="mm-tag" style={{ background: v.kmPolicy === 'limited' ? '#FBEFD9' : '#E1EFE4', color: v.kmPolicy === 'limited' ? '#8A5E1E' : '#3F6B4F', marginRight: '10px' }}>
-                  {v.kmPolicy === 'limited' ? `${v.kmLimit || '—'} km limit · ₹${v.extraKmRate || 0}/km` : 'Unlimited km'}
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginRight: '10px' }}>₹{v.extraHourRate || 0}/extra hr</span>
-                {canFinance && <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginRight: '10px' }}>{v.commissionRate ? `${v.commissionRate}% (override)` : 'default rate'}</span>}
-                {canEdit && (
-                  <div style={{ display: 'flex', gap: '2px' }}>
-=======
               <div key={v.id} className="mm-v-row" style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border-light)' }}>
                 <span className="mm-tag mm-v-status" style={{ background: isLive ? '#E1EFE4' : '#FBEFD9', color: isLive ? '#3F6B4F' : '#8A5E1E', display: 'inline-flex', alignItems: 'center', gap: '5px', width: '58px', justifyContent: 'center', flexShrink: 0 }}>
                   <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isLive ? '#3F6B4F' : '#B8863C', display: 'inline-block', flexShrink: 0 }}></span>
@@ -78,7 +54,6 @@ export function VehiclesView({ vehicles, hosts, bookings, onAdd, onEdit, onDelet
                 </div>
                 {canEdit && (
                   <div className="mm-v-actions">
->>>>>>> 07f5e40 (mobile)
                     <button type="button" className="mm-icon-btn" onClick={() => onEdit(v)}><IconEdit /></button>
                     <button type="button" className="mm-icon-btn" onClick={() => onDelete(v.id)}><IconTrash /></button>
                   </div>

@@ -254,11 +254,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
     <ModalShell title={readOnly ? `View booking ${data.code}` : (data.id ? `Edit booking ${data.code}` : 'New booking')} onCancel={onCancel} onSubmit={submit} wide>
       {readOnly && <p style={{ fontSize: '12px', color: 'var(--text-faint)', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px', margin: 0 }}>View-only — this role can't edit bookings.</p>}
       <fieldset disabled={readOnly} style={{ border: 'none', padding: 0, margin: 0, display: 'contents' }}>
-<<<<<<< HEAD
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-=======
       <div className="mm-form-grid">
->>>>>>> 07f5e40 (mobile)
         <Field label="Vehicle">
           <select required className="mm-input" value={data.vehicleId || ''} onChange={e => set('vehicleId', e.target.value)}>
             <option value="">Select vehicle</option>
@@ -278,19 +274,11 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
       {showNewCustomer && (
         <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <Field label="Customer name *"><input required className="mm-input" value={newCustomer.name} onChange={e => setNC('name', e.target.value)} placeholder="Full name" /></Field>
-<<<<<<< HEAD
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <Field label="Aadhar number *"><input required className="mm-input" style={{ fontFamily: '"IBM Plex Mono", monospace' }} value={newCustomer.aadhar} onChange={e => setNC('aadhar', e.target.value)} placeholder="XXXX XXXX XXXX" /></Field>
-            <Field label="License number *"><input required className="mm-input" style={{ fontFamily: '"IBM Plex Mono", monospace' }} value={newCustomer.licenseNumber} onChange={e => setNC('licenseNumber', e.target.value)} placeholder="DL number" /></Field>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-=======
           <div className="mm-form-grid" style={{ gap: '10px' }}>
             <Field label="Aadhar number *"><input required className="mm-input" style={{ fontFamily: '"IBM Plex Mono", monospace' }} value={newCustomer.aadhar} onChange={e => setNC('aadhar', e.target.value)} placeholder="XXXX XXXX XXXX" /></Field>
             <Field label="License number *"><input required className="mm-input" style={{ fontFamily: '"IBM Plex Mono", monospace' }} value={newCustomer.licenseNumber} onChange={e => setNC('licenseNumber', e.target.value)} placeholder="DL number" /></Field>
           </div>
           <div className="mm-form-grid" style={{ gap: '10px' }}>
->>>>>>> 07f5e40 (mobile)
             <Field label="Phone"><input className="mm-input" value={newCustomer.phone} onChange={e => setNC('phone', e.target.value)} /></Field>
             <Field label="Address *"><input required className="mm-input" value={newCustomer.address} onChange={e => setNC('address', e.target.value)} /></Field>
           </div>
@@ -302,11 +290,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
           </div>
         </div>
       )}
-<<<<<<< HEAD
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 60px', gap: '12px' }}>
-=======
       <div className="mm-form-grid" style={{ '--cols': 'minmax(0, 1fr) minmax(0, 1fr) 60px' }}>
->>>>>>> 07f5e40 (mobile)
         <Field label="Start" hint={datesLocked ? 'locked after saving — ask admin to change' : (!data.id && !canBypassTimeGuards) ? 'can\u2019t be backdated' : null}>
           <input type="datetime-local" required readOnly={datesLocked} min={(!data.id && !canBypassTimeGuards) ? nowLocal() : undefined} className="mm-input" value={data.start || ''} onChange={e => set('start', e.target.value)} />
         </Field>
@@ -315,11 +299,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
         </Field>
         <Field label="Days"><input type="number" min="1" readOnly={datesLocked} className="mm-input" value={data.days || 1} onChange={e => set('days', e.target.value)} /></Field>
       </div>
-<<<<<<< HEAD
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-=======
       <div className="mm-form-grid">
->>>>>>> 07f5e40 (mobile)
         <Field label="Rental amount (₹)" hint={priceLocked ? pricingInfo.breakdown : (hasRateCard ? 'overridden' : 'no rate card set for this vehicle')}>
           <input type="number" min="0" required readOnly={priceLocked} className="mm-input" value={data.rentalAmount || ''} onChange={e => set('rentalAmount', e.target.value)} />
         </Field>
@@ -353,19 +333,11 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
           <Field label="Closing time (actual return)" hint={canBypassTimeGuards ? 'required to complete' : "required to complete — can't be in the future"}>
             <input type="datetime-local" max={canBypassTimeGuards ? undefined : nowLocal()} min={data.start || undefined} className="mm-input" value={data.closingTime || ''} onChange={e => set('closingTime', e.target.value)} />
           </Field>
-<<<<<<< HEAD
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <ChargeRow label="Extra hours" amountKey="extraHours" data={data} set={set} readOnly={!!(data.closingTime && data.end)} rateHint={data.closingTime && data.end ? 'auto from closing time vs. end' : null} />
-            <ChargeRow label="Extra hour charge" amountKey="extraHourCharge" data={data} set={set} readOnly={hourRate > 0} rateHint={hourRate > 0 ? `auto @ ₹${hourRate}/hr` : null} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-=======
           <div className="mm-form-grid">
             <ChargeRow label="Extra hours" amountKey="extraHours" data={data} set={set} readOnly={!!(data.closingTime && data.end)} rateHint={data.closingTime && data.end ? 'auto from closing time vs. end' : null} />
             <ChargeRow label="Extra hour charge" amountKey="extraHourCharge" data={data} set={set} readOnly={hourRate > 0} rateHint={hourRate > 0 ? `auto @ ₹${hourRate}/hr` : null} />
           </div>
           <div className="mm-form-grid">
->>>>>>> 07f5e40 (mobile)
             <Field label="End km reading"><input type="number" min="0" placeholder="e.g. 12180" className="mm-input" value={data.endKm === undefined ? '' : data.endKm} onChange={e => set('endKm', e.target.value)} /></Field>
             <div />
           </div>
@@ -385,11 +357,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
 
       <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px' }}>
         <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 4px' }}>Payments received</p>
-<<<<<<< HEAD
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontFamily: '"IBM Plex Mono", monospace' }}>
-=======
         <div className="mm-kv-row" style={{ fontSize: '12px', fontFamily: '"IBM Plex Mono", monospace' }}>
->>>>>>> 07f5e40 (mobile)
           <span style={{ color: 'var(--text-muted)' }}>₹{money(calc.paidTotal)} of ₹{money(calc.totalDue)} (₹{money(calc.paidOnline)} online + ₹{money(calc.paidCash)} cash)</span>
           <span style={{ color: calc.balance > 0 ? '#A8452F' : '#3F6B4F' }}>{calc.balance > 0 ? `Balance ₹${money(calc.balance)}` : 'Fully paid'}</span>
         </div>
@@ -397,11 +365,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
         {canFinance && (
           <Fragment>
             <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-heading)', margin: '10px 0 4px' }}>Host payout</p>
-<<<<<<< HEAD
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontFamily: '"IBM Plex Mono", monospace' }}>
-=======
             <div className="mm-kv-row" style={{ fontSize: '12px', fontFamily: '"IBM Plex Mono", monospace' }}>
->>>>>>> 07f5e40 (mobile)
               <span style={{ color: 'var(--text-muted)' }}>₹{money(calc.payoutPaidAmount)} of ₹{money(calc.hostPayout)} paid out</span>
               <span style={{ color: calc.payoutBalance > 0 ? '#A8452F' : '#3F6B4F' }}>{calc.payoutBalance > 0 ? `Balance ₹${money(calc.payoutBalance)}` : 'Fully paid out'}</span>
             </div>
@@ -420,11 +384,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
           <Fragment>
             <div className="mm-input" style={{ background: 'var(--card-bg)', color: 'var(--text-muted)', cursor: 'default' }}>{displayStatus}</div>
             {data.status === 'ongoing' && (
-<<<<<<< HEAD
-              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-=======
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
->>>>>>> 07f5e40 (mobile)
                 <button type="button" className="mm-btn mm-btn-ghost mm-btn-sm" onClick={() => { set('status', 'cancelled'); setClosingError(''); }}>Cancel booking</button>
                 <button type="button" className="mm-btn mm-btn-ghost mm-btn-sm" onClick={() => { set('status', 'no-show'); setClosingError(''); }}>Mark no-show</button>
               </div>
@@ -445,11 +405,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>No-show — refund policy gives 0% (no refund due), regardless of what was already paid.</p>
           ) : (
             <Fragment>
-<<<<<<< HEAD
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '10px' }}>
-=======
               <div className="mm-form-grid" style={{ marginBottom: '10px' }}>
->>>>>>> 07f5e40 (mobile)
                 <Field label="Cancelled at" hint={canBypassTimeGuards ? 'admin can adjust' : 'locked to system time'}>
                   {canBypassTimeGuards ? (
                     <input type="datetime-local" max={nowLocal()} className="mm-input" value={data.cancelledAt || ''} onChange={e => set('cancelledAt', e.target.value)} />
@@ -462,11 +418,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
                 </Field>
               </div>
               <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '0 0 10px' }}>{canBypassTimeGuards ? 'As admin, you can correct this if the cancellation was logged late — it still feeds the refund tier below.' : 'Cancellation time is captured automatically and can\u2019t be backdated, so the refund tier reflects real notice given.'} Policy: 90% if cancelled 24+ hrs before start, 50% if 4–24 hrs before, 0% under 4 hrs or no-show. Adjust the % above for documented exceptions.</p>
-<<<<<<< HEAD
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontFamily: '"IBM Plex Mono", monospace' }}>
-=======
               <div className="mm-kv-row" style={{ fontSize: '12px', fontFamily: '"IBM Plex Mono", monospace' }}>
->>>>>>> 07f5e40 (mobile)
                 <span style={{ color: 'var(--text-muted)' }}>Refund due: <b style={{ color: 'var(--text-heading)' }}>₹{money(calc.refundDue)}</b> ({data.refundPercent || 0}% of ₹{money(calc.paidTotal)} paid) · ₹{money(calc.refundPaidAmount)} refunded so far</span>
                 <span style={{ color: calc.refundBalance > 0 ? '#A8452F' : '#3F6B4F' }}>{calc.refundBalance > 0 ? `Balance ₹${money(calc.refundBalance)}` : calc.refundDue > 0 ? 'Fully refunded' : '—'}</span>
               </div>
@@ -480,11 +432,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
       {closingError && <p style={{ fontSize: '12px', color: '#A8452F', margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}><IconAlert />{closingError}</p>}
       <Field label="Notes"><textarea rows={2} className="mm-input" style={{ resize: 'vertical' }} value={data.notes || ''} onChange={e => set('notes', e.target.value)} /></Field>
       </fieldset>
-<<<<<<< HEAD
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
-=======
       <div className="mm-modal-actions">
->>>>>>> 07f5e40 (mobile)
         {readOnly ? (
           <button type="button" className="mm-btn mm-btn-primary" onClick={onCancel}>Close</button>
         ) : (

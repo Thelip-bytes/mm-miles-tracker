@@ -57,11 +57,7 @@ export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSav
           <option value="expense">Expense</option>
         </select>
       </Field>
-<<<<<<< HEAD
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-=======
       <div className="mm-form-grid">
->>>>>>> 07f5e40 (mobile)
         <Field label="Date"><input type="date" required className="mm-input" value={data.date || ''} onChange={e => set('date', e.target.value)} /></Field>
         <Field label="Category">
           <select className="mm-input" value={data.category || ''} onChange={e => set('category', e.target.value)}>
@@ -78,11 +74,7 @@ export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSav
           </select>
         </Field>
       )}
-<<<<<<< HEAD
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-=======
       <div className="mm-form-grid">
->>>>>>> 07f5e40 (mobile)
         <Field label="Amount (₹)"><input type="number" min="0" required className="mm-input" value={data.amount || ''} onChange={e => set('amount', e.target.value)} /></Field>
         <Field label="Mode">
           <select className="mm-input" value={data.mode || 'online'} onChange={e => set('mode', e.target.value)}>
@@ -97,11 +89,7 @@ export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSav
         </p>
       )}
       <Field label="Note"><input className="mm-input" value={data.note || ''} onChange={e => set('note', e.target.value)} placeholder="What was this for?" /></Field>
-<<<<<<< HEAD
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
-=======
       <div className="mm-modal-actions">
->>>>>>> 07f5e40 (mobile)
         <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel}>Cancel</button>
         <button type="submit" className="mm-btn mm-btn-primary">Save entry</button>
       </div>

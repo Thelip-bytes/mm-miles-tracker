@@ -55,11 +55,7 @@ export function Overview({ stats, chartData, paymentModeData, bookings, vehicleL
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
         <div>
-<<<<<<< HEAD
-          <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: '24px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 4px' }}>Overview</h1>
-=======
           <h1 className="mm-h1" style={{ margin: '0 0 4px' }}>Overview</h1>
->>>>>>> 07f5e40 (mobile)
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Showing {range.label} — a booking counts toward its start date</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -75,21 +71,13 @@ export function Overview({ stats, chartData, paymentModeData, bookings, vehicleL
           )}
         </div>
       </div>
-<<<<<<< HEAD
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '26px' }}>
-=======
       <div className="mm-stats-4" style={{ marginBottom: '26px' }}>
->>>>>>> 07f5e40 (mobile)
         <StatCard label="Sales" value={periodStats.sales} sub={range.label} tone="default" />
         <StatCard label="Platform commission" value={periodStats.commission} sub={range.label} tone="gold" />
         <StatCard label="Host payouts pending" value={stats.pendingPayouts} sub="see Payouts tab" tone="bad" />
         <StatCard label="Collections pending" value={stats.pendingFromCustomers} sub="not yet paid by customers" tone="bad" />
       </div>
-<<<<<<< HEAD
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '16px', marginBottom: '26px' }}>
-=======
       <div className="mm-split" style={{ marginBottom: '26px' }}>
->>>>>>> 07f5e40 (mobile)
         <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '18px 20px' }}>
           <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 14px' }}>Sales vs platform commission, last 6 months</p>
           <div style={{ height: 200 }}><BarPanel data={chartData} dark={theme === 'dark'} /></div>
@@ -102,11 +90,7 @@ export function Overview({ stats, chartData, paymentModeData, bookings, vehicleL
       <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '18px 20px' }}>
         <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 12px' }}>Recent bookings</p>
         {recent.length === 0 ? <p style={{ fontSize: '12px', color: 'var(--text-faint)' }}>No bookings yet — add one from the Bookings tab.</p> : recent.map(b => (
-<<<<<<< HEAD
-          <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderTop: '1px solid var(--border-light)' }}>
-=======
           <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', padding: '9px 0', borderTop: '1px solid var(--border-light)' }}>
->>>>>>> 07f5e40 (mobile)
             <div>
               <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: '12px', color: 'var(--text-heading)', fontWeight: 600 }}>{b.code}</span>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '10px' }}>{vehicleLabel(b.calc.vehicle)} · {customerName(b.customerId)}</span>

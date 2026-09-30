@@ -19,10 +19,6 @@ import {
   compressImageFile, migrateTransactions
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
-<<<<<<< HEAD
-
-export function PayoutsView({ bookings, allEnriched, transactions, vehicleLabel, filter, setFilter, search, setSearch, onRecordPayout }) {
-=======
 import { useMediaQuery, PHONE_QUERY } from '@/lib/useMediaQuery';
 
 function PayoutStatusTag({ status }) {
@@ -33,7 +29,6 @@ function PayoutStatusTag({ status }) {
 
 export function PayoutsView({ bookings, allEnriched, transactions, vehicleLabel, filter, setFilter, search, setSearch, onRecordPayout }) {
   const isPhone = useMediaQuery(PHONE_QUERY);
->>>>>>> 07f5e40 (mobile)
   const active = allEnriched.filter(b => b.status !== 'cancelled' && b.status !== 'no-show');
   const thisMonth = monthKey(todayStr());
   const totalPending = active.reduce((s, b) => s + b.calc.payoutBalance, 0);
@@ -44,32 +39,11 @@ export function PayoutsView({ bookings, allEnriched, transactions, vehicleLabel,
 
   return (
     <div>
-<<<<<<< HEAD
-      <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: '24px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 4px' }}>Host payouts</h1>
-=======
       <h1 className="mm-h1" style={{ margin: '0 0 4px' }}>Host payouts</h1>
->>>>>>> 07f5e40 (mobile)
       <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 16px' }}>What's owed to each host, separate from booking sales. Payouts are logged in the cash flow tab — nothing to mark here manually.</p>
       <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '18px' }}>
         Commission tiers: <b style={{ color: 'var(--text-heading)' }}>rental & extra hours</b> at the vehicle/host rate (default 30%) · <b style={{ color: 'var(--text-heading)' }}>extra km & damage</b> at {DAMAGE_KM_RATE}% · <b style={{ color: 'var(--text-heading)' }}>fuel, toll & fines</b> pass through at 0%. Click a row's arrow to see the exact math.
       </div>
-<<<<<<< HEAD
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px', marginBottom: '22px' }}>
-        <StatCard label="Total payout pending" value={totalPending} sub="across all hosts" tone="bad" />
-        <StatCard label="Paid out this month" value={totalPaidThisMonth} tone="good" />
-      </div>
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: '260px' }}>
-          <span style={{ position: 'absolute', left: '10px', top: '9px', color: 'var(--text-faint)' }}><IconSearch /></span>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search booking, vehicle, host" className="mm-input" style={{ paddingLeft: '30px' }} />
-        </div>
-        {filters.map(([f, label]) => (
-          <span key={f} onClick={() => setFilter(f)} style={{ cursor: 'pointer', fontSize: '12px', padding: '6px 12px', borderRadius: '20px', background: filter === f ? 'var(--text-heading)' : 'var(--card-bg)', color: filter === f ? 'var(--page-bg)' : 'var(--text-muted)', border: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{label}</span>
-        ))}
-      </div>
-      {bookings.length === 0 ? <EmptyState text="No payouts match. Bookings will show up here once rentals are logged." /> : (
-        <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
-=======
       <div className="mm-stats-2" style={{ marginBottom: '22px' }}>
         <StatCard label="Total payout pending" value={totalPending} sub="across all hosts" tone="bad" />
         <StatCard label="Paid out this month" value={totalPaidThisMonth} tone="good" />
@@ -137,7 +111,6 @@ export function PayoutsView({ bookings, allEnriched, transactions, vehicleLabel,
         </div>
       ) : (
         <div className="mm-table-wrap" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px' }}>
->>>>>>> 07f5e40 (mobile)
           <table>
             <thead>
               <tr>
@@ -174,11 +147,7 @@ export function PayoutsView({ bookings, allEnriched, transactions, vehicleLabel,
                       <td className="mm-td" style={{ textAlign: 'right', fontFamily: '"IBM Plex Mono", monospace', fontWeight: 600, color: '#B8863C' }}>₹{money(b.calc.hostPayout)}</td>
                       <td className="mm-td" style={{ textAlign: 'right', fontFamily: '"IBM Plex Mono", monospace', color: b.calc.payoutBalance > 0 ? '#A8452F' : '#3F6B4F' }}>₹{money(b.calc.payoutBalance)}</td>
                       <td className="mm-td">
-<<<<<<< HEAD
-                        <span className="mm-tag" style={{ background: b.calc.payoutStatus === 'paid' ? '#E1EFE4' : b.calc.payoutStatus === 'partial' ? '#FBEFD9' : 'var(--border-light)', color: b.calc.payoutStatus === 'paid' ? '#3F6B4F' : b.calc.payoutStatus === 'partial' ? '#8A5E1E' : '#6B6555', textTransform: 'capitalize' }}>{b.calc.payoutStatus}</span>
-=======
                         <PayoutStatusTag status={b.calc.payoutStatus} />
->>>>>>> 07f5e40 (mobile)
                       </td>
                       <td className="mm-td">
                         {b.calc.payoutStatus !== 'paid' && (

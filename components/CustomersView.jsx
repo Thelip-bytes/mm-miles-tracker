@@ -23,26 +23,16 @@ import { computeBooking } from '@/lib/computeBooking';
 export function CustomersView({ customers, bookings, onAdd, onEdit, onDelete, canEdit }) {
   return (
     <div>
-<<<<<<< HEAD
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-        <div>
-          <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: '24px', fontWeight: 600, color: 'var(--text-heading)', margin: 0 }}>Customers</h1>
-=======
       <div className="mm-page-head" style={{ marginBottom: '18px' }}>
         <div>
           <h1 className="mm-h1">Customers</h1>
->>>>>>> 07f5e40 (mobile)
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{customers.length} on file</p>
         </div>
         {canEdit && <button type="button" className="mm-btn mm-btn-primary" onClick={onAdd}><IconPlus /> New customer</button>}
       </div>
       <p style={{ fontSize: '12px', color: 'var(--text-faint)', margin: '-10px 0 16px' }}>{canEdit ? 'Tip: you can also add a new customer directly from the "New booking" form.' : 'View-only — ask an admin to add or edit customers.'}</p>
       {customers.length === 0 ? <EmptyState text="No customers yet. Add customers here or directly from a booking." /> : (
-<<<<<<< HEAD
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-=======
         <div className="mm-card-grid">
->>>>>>> 07f5e40 (mobile)
           {customers.map(c => {
             const cb = bookings.filter(b => b.customerId === c.id && b.status !== 'cancelled' && b.status !== 'no-show');
             const total = cb.reduce((s, b) => s + (Number(b.rentalAmount) || 0), 0);

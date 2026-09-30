@@ -8,22 +8,15 @@
     --page-bg: #1B2338; --card-bg: #232C48; --input-bg: #1A2140; --border: #3A4568; --border-light: #2E3654;
     --text-heading: #EDEEF5; --text-muted: #A8AEC4; --text-faint: #7C82A0; --page-backdrop: #10142A; --hover-bg: #2E3654;
   }
-<<<<<<< HEAD
-  html, body { margin: 0; padding: 0; background: var(--page-backdrop); font-family: 'Inter', sans-serif; transition: background .2s; }
-=======
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   html, body { margin: 0; padding: 0; background: var(--page-backdrop); font-family: 'Inter', sans-serif; transition: background .2s; }
   img { max-width: 100%; }
->>>>>>> 07f5e40 (mobile)
   .mm-app-root { min-height: 100vh; display: flex; justify-content: center; padding: 24px; }
   input, select, textarea { font-family: 'Inter', sans-serif; font-size: 13px; }
   input:focus, select:focus, textarea:focus { outline: 2px solid #B8863C; outline-offset: -1px; }
   input:disabled { opacity: 0.6; }
-<<<<<<< HEAD
-=======
   input[type="date"], input[type="datetime-local"] { min-width: 0; }
   input::-webkit-date-and-time-value { text-align: left; }
->>>>>>> 07f5e40 (mobile)
   button { font-family: 'Inter', sans-serif; }
   table { border-collapse: collapse; width: 100%; }
   .mm-nav-item { display:flex; align-items:center; gap:10px; padding:10px 16px; border-radius:8px; cursor:pointer; font-size:14px; color:#C9CCDA; transition:background .15s; }
@@ -44,8 +37,6 @@
   .mm-input { width:100%; padding:8px 10px; border-radius:6px; background:var(--input-bg); border:1px solid var(--border); color:var(--text-heading); }
   .mm-th { text-align: left; font-size: 11px; font-weight: 600; color: var(--text-faint); padding: 10px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .mm-td { padding: 10px 10px; font-size: 13px; color: var(--text-heading); border-bottom: 1px solid var(--border-light); vertical-align: middle; }
-<<<<<<< HEAD
-=======
 
   /* ------------------------------------------------------------ app shell */
   /* Fixed sidebar on desktop; below 900px it becomes a slide-in drawer
@@ -201,4 +192,3 @@
     .mm-modal-actions { position: sticky; bottom: 0; z-index: 1; margin: 4px -16px -16px; padding: 12px 16px; background: var(--page-bg); border-top: 1px solid var(--border); }
     .mm-modal-actions .mm-btn { flex: 1; justify-content: center; }
   }
->>>>>>> 07f5e40 (mobile)

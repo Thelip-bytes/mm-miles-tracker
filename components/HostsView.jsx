@@ -23,22 +23,13 @@ import { computeBooking } from '@/lib/computeBooking';
 export function HostsView({ hosts, vehicles, bookings, onAdd, onEdit, onDelete, canEdit, canFinance }) {
   return (
     <div>
-<<<<<<< HEAD
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-        <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: '24px', fontWeight: 600, color: 'var(--text-heading)', margin: 0 }}>Hosts</h1>
-=======
       <div className="mm-page-head" style={{ marginBottom: '4px' }}>
         <h1 className="mm-h1">Hosts</h1>
->>>>>>> 07f5e40 (mobile)
         {canEdit && <button type="button" className="mm-btn mm-btn-primary" onClick={onAdd}><IconPlus /> New host</button>}
       </div>
       <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 20px' }}>{canEdit ? 'Who each vehicle is hosted by, and their commission rate' : 'View-only — ask an admin to add or edit hosts'}</p>
       {hosts.length === 0 ? <EmptyState text="No hosts yet. Add a host before adding their vehicles." /> : (
-<<<<<<< HEAD
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-=======
         <div className="mm-card-grid">
->>>>>>> 07f5e40 (mobile)
           {hosts.map(h => {
             const hb = bookings.filter(b => b.calc.host && b.calc.host.id === h.id && b.status !== 'cancelled' && b.status !== 'no-show');
             const pending = hb.reduce((s, b) => s + b.calc.payoutBalance, 0);
