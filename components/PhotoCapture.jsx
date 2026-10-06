@@ -20,7 +20,7 @@ import {
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
-export function PhotoCapture({ label, value, onChange }) {
+export function PhotoCapture({ label, value, onChange, loading }) {
   const inputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   async function handleFile(e) {
@@ -47,8 +47,8 @@ export function PhotoCapture({ label, value, onChange }) {
           </div>
         </div>
       ) : (
-        <button type="button" className="mm-btn mm-btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={() => inputRef.current.click()} disabled={busy}>
-          <IconCamera /> {busy ? 'Processing…' : 'Capture or upload'}
+        <button type="button" className="mm-btn mm-btn-ghost" style={{ width: '100%', justifyContent: 'center' }} onClick={() => inputRef.current.click()} disabled={busy || loading}>
+          <IconCamera /> {busy ? 'Processing…' : loading ? 'Loading photo…' : 'Capture or upload'}
         </button>
       )}
     </div>

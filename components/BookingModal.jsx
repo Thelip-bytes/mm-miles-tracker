@@ -13,41 +13,81 @@ import {
   ROLE_PERMS
 } from '@/lib/constants';
 import {
-  refundTierFor, multiDayDiscountFor, uid, todayStr, nowLocal, money, monthKey,
+  refundTierFor, multiDayDiscountFor, uid, todayStr, nowLocal, nowLocalMinus, money, monthKey,
   monthLabel, nextBookingCode, safeGet, safeSet, getCol, pad2, toLocalInputStr,
   toDateInputStr, parseFlexibleDateTime, parseFlexibleDate, numOrBlank,
   compressImageFile, migrateTransactions
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
-export function BookingModal({ form, vehicles, hosts, customers, transactions, bookings, onCancel, onSave, onQuickAddCustomer, readOnly, canFinance, canOverridePrice, canBypassTimeGuards }) {
+// How far back a new booking's start time may sit before we insist it is
+// re-picked. Long enough to fill the form in, short enough that a genuinely
+// backdated entry is still refused.
+const START_GRACE_MS = 30 * 60 * 1000;
+
+function wasRateCardDiscounted(form, vehicles) {
+  if (!form?.id || form.priceOverridden || !form.start || !form.end) return false;
+  const vehicle = vehicles.find(v => v.id === form.vehicleId);
+  if (!vehicle) return false;
+
+  const totalMinutes = Math.max(0, Math.round((new Date(form.end) - new Date(form.start)) / 60000));
+  const totalHours = totalMinutes / 60;
+  const fullDays = Math.floor(totalMinutes / 1440);
+  const leftoverHours = Math.ceil((totalMinutes - fullDays * 1440) / 60);
+  if (vehicle.kmPolicy !== 'limited') {
+    if (Number(vehicle.pkg4hrRate) > 0 && totalHours <= 12) return false;
+  }
+
+  const discount = multiDayDiscountFor(fullDays);
+  if (!discount) return false;
+  const base = fullDays * (Number(vehicle.dailyRate) || 0) + leftoverHours * (Number(vehicle.hourlyRate) || 0);
+  const withDiscount = Math.round(base * (1 - discount / 100));
+  return withDiscount !== Math.round(base) && Number(form.rentalAmount) === withDiscount;
+}
+
+export function BookingModal({ form, vehicles, hosts, customers, transactions, bookings, onCancel, onSave, onQuickAddCustomer, readOnly, canFinance, canOverridePrice, canBypassTimeGuards, saving, syncing, saveError, onDismissError }) {
   const [data, setData] = useState(form);
-  const [addedCustomers, setAddedCustomers] = useState([]);
+  // New bookings start with no discount. Existing rate-card bookings recover
+  // the choice from their saved rental amount, so no database migration is
+  // needed just to remember the selected price.
+  const [discountEnabled, setDiscountEnabled] = useState(() => wasRateCardDiscounted(form, vehicles));
+  const [discountTouched, setDiscountTouched] = useState(false);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [addingCustomer, setAddingCustomer] = useState(false);
   const [newCustomer, setNewCustomer] = useState({ name: '', aadhar: '', licenseNumber: '', phone: '', address: '' });
   const [newCustomerError, setNewCustomerError] = useState('');
   const [closingError, setClosingError] = useState('');
+  const errorRef = useRef(null);
+  const startRef = useRef(null);
   const set = (k, v) => setData(d => ({ ...d, [k]: v }));
   const setNC = (k, v) => setNewCustomer(d => ({ ...d, [k]: v }));
 
-  const allCustomers = useMemo(() => {
-    const merged = [...customers];
-    addedCustomers.forEach(ac => { if (!merged.find(c => c.id === ac.id)) merged.push(ac); });
-    return merged;
-  }, [customers, addedCustomers]);
+  // The parent owns the customer list and appends the saved row to it, so there
+  // is nothing to merge here. (This used to keep a client-side copy keyed by a
+  // temporary `uid()`, which left the dropdown showing the new customer twice
+  // and left `customerId` pointing at an id that does not exist in Postgres.)
+  const allCustomers = customers;
 
-  function saveNewCustomer() {
+  async function saveNewCustomer() {
     if (!newCustomer.name.trim() || !newCustomer.aadhar.trim() || !newCustomer.licenseNumber.trim() || !newCustomer.address.trim()) {
       setNewCustomerError('Name, Aadhar number, license number, and address are all required.');
       return;
     }
-    const c = { ...newCustomer, id: uid() };
-    onQuickAddCustomer(c);
-    setAddedCustomers(a => [...a, c]);
-    set('customerId', c.id);
-    setNewCustomer({ name: '', aadhar: '', licenseNumber: '', phone: '', address: '' });
+    setAddingCustomer(true);
     setNewCustomerError('');
-    setShowNewCustomer(false);
+    try {
+      // Wait for the real database id before selecting it — a booking saved
+      // against the old temporary id was rejected by Postgres, and the failure
+      // was never shown, so the whole form had to be filled in again.
+      const realId = await onQuickAddCustomer(newCustomer);
+      set('customerId', realId);
+      setNewCustomer({ name: '', aadhar: '', licenseNumber: '', phone: '', address: '' });
+      setShowNewCustomer(false);
+    } catch (err) {
+      setNewCustomerError(err.message || 'That customer could not be saved.');
+    } finally {
+      setAddingCustomer(false);
+    }
   }
 
   useEffect(() => {
@@ -57,6 +97,16 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
       if (diffMs > 0) { const days = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24))); if (days !== Number(data.days)) set('days', days); }
     }
   }, [data.start, data.end]);
+
+  // Earliest start time we will accept for a brand-new booking. The form
+  // pre-fills `start` with the instant the modal opened, so a hard "not in the
+  // past" rule was guaranteed to fail — and because this is also the input's
+  // native `min`, the browser blocked the submit with its own wording before
+  // our message could ever appear. The grace window covers the time it takes to
+  // fill the form in; anything older is genuinely a backdated entry.
+  // Recomputed per render (as `nowLocal()` already was) so the floor never
+  // goes stale while a slow form is being filled in.
+  const startMin = nowLocalMinus(START_GRACE_MS);
 
   const vehicle = vehicles.find(v => v.id === data.vehicleId);
   const isLimited = vehicle && vehicle.kmPolicy === 'limited';
@@ -69,7 +119,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
   const datesLocked = !!data.id && !canBypassTimeGuards;
 
   const pricingInfo = useMemo(() => {
-    if (!data.start || !data.end || !vehicle) return { amount: 0, breakdown: '' };
+    if (!data.start || !data.end || !vehicle) return { amount: 0, breakdown: '', discountPercent: 0 };
     const totalMinutes = Math.max(0, Math.round((new Date(data.end) - new Date(data.start)) / 60000));
     const totalHours = totalMinutes / 60;
     const fullDays = Math.floor(totalMinutes / 1440);
@@ -81,20 +131,21 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
       const p4 = Number(vehicle.pkg4hrRate) || 0;
       const p410 = Number(vehicle.pkg4to10Rate) || 0;
       const p12 = Number(vehicle.pkg12hrRate) || 0;
-      if (totalHours <= 4) return { amount: p4, breakdown: `4-hr package (${vehicle.pkg4hrKm || '—'} km incl.)` };
+      if (totalHours <= 4) return { amount: p4, breakdown: `4-hr package (${vehicle.pkg4hrKm || '—'} km incl.)`, discountPercent: 0 };
       if (totalHours <= 10) {
         const extraHrs = Math.ceil(totalHours - 4);
-        return { amount: p4 + extraHrs * p410, breakdown: `4-hr base ₹${money(p4)} + ${extraHrs}hr @ ₹${money(p410)} (${vehicle.pkg4to10Km || '—'} km incl.)` };
+        return { amount: p4 + extraHrs * p410, breakdown: `4-hr base ₹${money(p4)} + ${extraHrs}hr @ ₹${money(p410)} (${vehicle.pkg4to10Km || '—'} km incl.)`, discountPercent: 0 };
       }
-      return { amount: p12, breakdown: `12-hr package (${vehicle.pkg12hrKm || '—'} km incl.)` };
+      return { amount: p12, breakdown: `12-hr package (${vehicle.pkg12hrKm || '—'} km incl.)`, discountPercent: 0 };
     }
 
     const base = fullDays * dailyRate + leftoverHours * baseHourlyRate;
     const discountPct = multiDayDiscountFor(fullDays);
-    const amount = Math.round(base * (1 - discountPct / 100));
-    const breakdown = `${fullDays}d @ ₹${money(dailyRate)}${leftoverHours > 0 ? ` + ${leftoverHours}hr @ ₹${money(baseHourlyRate)}` : ''}${discountPct > 0 ? ` − ${discountPct}% (${fullDays}-day discount)` : ''}`;
-    return { amount, breakdown };
-  }, [data.start, data.end, vehicle, isLimited, dailyRate, baseHourlyRate]);
+    const appliedDiscount = discountEnabled ? discountPct : 0;
+    const amount = Math.round(base * (1 - appliedDiscount / 100));
+    const breakdown = `${fullDays}d @ ₹${money(dailyRate)}${leftoverHours > 0 ? ` + ${leftoverHours}hr @ ₹${money(baseHourlyRate)}` : ''}${appliedDiscount > 0 ? ` − ${appliedDiscount}% (${fullDays}-day discount)` : ''}`;
+    return { amount, breakdown, discountPercent: discountPct };
+  }, [data.start, data.end, vehicle, isLimited, dailyRate, baseHourlyRate, discountEnabled]);
 
   useEffect(() => {
     if (!hasRateCard || data.priceOverridden === true) return;
@@ -104,10 +155,10 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
     // existing booking was opened for an unrelated edit, so untouched
     // historical/imported prices are never silently overwritten.
     const datesChanged = data.start !== form.start || data.end !== form.end;
-    const shouldAutoFill = !data.id || data.priceOverridden === false || datesChanged;
+    const shouldAutoFill = !data.id || data.priceOverridden === false || datesChanged || discountTouched;
     if (!shouldAutoFill) return;
     if (Number(data.rentalAmount || 0) !== pricingInfo.amount) set('rentalAmount', pricingInfo.amount);
-  }, [pricingInfo, hasRateCard, data.priceOverridden, data.id, data.start, data.end, form.start, form.end]);
+  }, [pricingInfo, hasRateCard, data.priceOverridden, data.id, data.start, data.end, form.start, form.end, discountTouched]);
 
   const kmDriven = useMemo(() => {
     if (data.startKm === undefined || data.startKm === '' || data.endKm === undefined || data.endKm === '') return null;
@@ -219,13 +270,23 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
 
   function submit(e) {
     e.preventDefault();
+    if (saving || addingCustomer) return;
     if (readOnly) { onCancel(); return; }
     if (!data.vehicleId || !data.customerId || !data.start || !data.end || !data.rentalAmount || data.startKm === undefined || data.startKm === '') {
       setClosingError('Fill in vehicle, customer, dates, rental amount, and the start km reading before saving.');
       return;
     }
     if (!data.id && !canBypassTimeGuards) {
-      if (new Date(data.start) < new Date()) { setClosingError('A new booking\u2019s start time can\u2019t be in the past \u2014 it can\u2019t be backdated.'); return; }
+      // The form pre-fills `start` with the time the modal was OPENED, so by the
+      // time a real booking has been typed in (vehicle, customer, km reading…)
+      // that timestamp is always in the past — and the save was rejected with no
+      // visible explanation. Allow a grace window for form-filling time, and
+      // when it really is stale, focus the field instead of failing silently.
+      if (new Date(data.start) < new Date() - START_GRACE_MS) {
+        setClosingError('The start time has gone stale while the form was being filled in \u2014 set it to now (or the actual handover time) and save again.');
+        if (startRef.current) { startRef.current.focus(); startRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        return;
+      }
     }
     if (datesLocked && data.start !== form.start) {
       setClosingError('The booking\u2019s start time is locked once saved \u2014 ask an admin to change it.');
@@ -250,10 +311,29 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
     onSave(data);
   }
 
+  // Both the field-level and the server-level error render at the TOP of the
+  // modal now, but the form is long and the Save button sits in a sticky
+  // footer — so scroll the message into view whenever one appears.
+  useEffect(() => {
+    if ((closingError || saveError) && errorRef.current) {
+      errorRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+  }, [closingError, saveError]);
+
   return (
     <ModalShell title={readOnly ? `View booking ${data.code}` : (data.id ? `Edit booking ${data.code}` : 'New booking')} onCancel={onCancel} onSubmit={submit} wide>
+      {(closingError || saveError) && (
+        <div ref={errorRef} role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', background: '#F7E4E0', border: '1px solid #E0A79A', borderRadius: '8px', padding: '10px 12px', margin: '0 0 12px' }}>
+          <span style={{ color: '#A8452F', flexShrink: 0, marginTop: '1px' }}><IconAlert /></span>
+          <p style={{ fontSize: '12px', color: '#8A3B2A', margin: 0, flex: 1 }}>{closingError || saveError}</p>
+          {saveError && onDismissError && (
+            <button type="button" onClick={onDismissError} aria-label="Dismiss"
+              style={{ background: 'none', border: 'none', color: '#8A3B2A', fontSize: '16px', lineHeight: 1, cursor: 'pointer', padding: 0 }}>×</button>
+          )}
+        </div>
+      )}
       {readOnly && <p style={{ fontSize: '12px', color: 'var(--text-faint)', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px', margin: 0 }}>View-only — this role can't edit bookings.</p>}
-      <fieldset disabled={readOnly} style={{ border: 'none', padding: 0, margin: 0, display: 'contents' }}>
+      <fieldset disabled={readOnly || saving || syncing} style={{ border: 'none', padding: 0, margin: 0, display: 'contents' }}>
       <div className="mm-form-grid">
         <Field label="Vehicle">
           <select required className="mm-input" value={data.vehicleId || ''} onChange={e => set('vehicleId', e.target.value)}>
@@ -285,14 +365,17 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
           {newCustomerError && <p style={{ fontSize: '11px', color: '#A8452F', margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}><IconAlert />{newCustomerError}</p>}
           <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: 0 }}>Photo capture for Aadhar, license, and the renter is available on the full customer profile — save this quickly, then add photos from the Customers tab.</p>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-            <button type="button" className="mm-btn mm-btn-ghost" onClick={() => setShowNewCustomer(false)}>Cancel</button>
-            <button type="button" className="mm-btn mm-btn-gold" onClick={saveNewCustomer}>Save customer</button>
+            <button type="button" className="mm-btn mm-btn-ghost" onClick={() => setShowNewCustomer(false)} disabled={addingCustomer}>Cancel</button>
+            <button type="button" className="mm-btn mm-btn-gold" onClick={saveNewCustomer} disabled={addingCustomer || saving || syncing}
+              style={{ opacity: (addingCustomer || saving || syncing) ? 0.6 : 1 }}>
+              {addingCustomer ? 'Saving…' : 'Save customer'}
+            </button>
           </div>
         </div>
       )}
       <div className="mm-form-grid" style={{ '--cols': 'minmax(0, 1fr) minmax(0, 1fr) 60px' }}>
         <Field label="Start" hint={datesLocked ? 'locked after saving — ask admin to change' : (!data.id && !canBypassTimeGuards) ? 'can\u2019t be backdated' : null}>
-          <input type="datetime-local" required readOnly={datesLocked} min={(!data.id && !canBypassTimeGuards) ? nowLocal() : undefined} className="mm-input" value={data.start || ''} onChange={e => set('start', e.target.value)} />
+          <input ref={startRef} type="datetime-local" required readOnly={datesLocked} min={(!data.id && !canBypassTimeGuards) ? startMin : undefined} className="mm-input" value={data.start || ''} onChange={e => set('start', e.target.value)} />
         </Field>
         <Field label="End" hint={datesLocked ? 'can be extended later, but not moved earlier' : null}>
           <input type="datetime-local" required min={datesLocked ? form.end : undefined} className="mm-input" value={data.end || ''} onChange={e => set('end', e.target.value)} />
@@ -305,6 +388,28 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
         </Field>
         <Field label="Start km reading" hint="required to start the trip"><input type="number" min="0" required placeholder="e.g. 12000" className="mm-input" value={data.startKm === undefined ? '' : data.startKm} onChange={e => set('startKm', e.target.value)} /></Field>
       </div>
+      {hasRateCard && !data.priceOverridden && pricingInfo.discountPercent > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 12px' }}>
+          <div>
+            <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-heading)', margin: 0 }}>Multi-day discount ({pricingInfo.discountPercent}%)</p>
+            <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '3px 0 0' }}>{discountEnabled ? 'Discount applied to the rate-card price.' : 'No discount will be applied.'}</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={discountEnabled}
+            aria-label="Apply multi-day discount"
+            disabled={saving}
+            onClick={() => {
+              setDiscountTouched(true);
+              setDiscountEnabled(enabled => !enabled);
+            }}
+            style={{ width: '46px', height: '26px', border: 0, borderRadius: '999px', padding: '3px', background: discountEnabled ? '#3F6B4F' : '#9B9A92', cursor: 'pointer', flexShrink: 0, transition: 'background 120ms ease' }}
+          >
+            <span style={{ display: 'block', width: '20px', height: '20px', borderRadius: '50%', background: '#fff', transform: discountEnabled ? 'translateX(20px)' : 'translateX(0)', transition: 'transform 120ms ease' }} />
+          </button>
+        </div>
+      )}
       {hasRateCard && canOverridePrice && (
         <div>
           {!data.priceOverridden ? (
@@ -429,7 +534,6 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
         </div>
       )}
 
-      {closingError && <p style={{ fontSize: '12px', color: '#A8452F', margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}><IconAlert />{closingError}</p>}
       <Field label="Notes"><textarea rows={2} className="mm-input" style={{ resize: 'vertical' }} value={data.notes || ''} onChange={e => set('notes', e.target.value)} /></Field>
       </fieldset>
       <div className="mm-modal-actions">
@@ -437,8 +541,13 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
           <button type="button" className="mm-btn mm-btn-primary" onClick={onCancel}>Close</button>
         ) : (
           <Fragment>
-            <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel}>Cancel</button>
-            <button type="submit" className="mm-btn mm-btn-primary">Save booking</button>
+            <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel} disabled={saving}>Cancel</button>
+            {/* Disabled while in flight: the save is a server round trip, and an
+                enabled button meant a second click posted a second booking. */}
+            <button type="submit" className="mm-btn mm-btn-primary" disabled={saving || syncing || addingCustomer}
+              style={{ opacity: (saving || syncing || addingCustomer) ? 0.6 : 1 }}>
+              {saving ? 'Saving…' : syncing ? 'Updating totals…' : 'Save booking'}
+            </button>
           </Fragment>
         )}
       </div>

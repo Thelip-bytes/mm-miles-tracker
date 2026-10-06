@@ -20,7 +20,7 @@ import {
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
-export function HostModal({ form, onCancel, onSave }) {
+export function HostModal({ form, onCancel, onSave, saving, syncing, saveError }) {
   const [data, setData] = useState(form);
   const set = (k, v) => setData(d => ({ ...d, [k]: v }));
   function submit(e) { e.preventDefault(); if (!data.name || data.commissionRate === undefined || data.commissionRate === '') return; onSave(data); }
@@ -33,9 +33,16 @@ export function HostModal({ form, onCancel, onSave }) {
       </div>
       <p style={{ fontSize: '12px', color: 'var(--text-faint)', margin: 0 }}>Extra km & damage are always commissioned at a fixed {DAMAGE_KM_RATE}%; fuel, toll & fines pass through at 0% (this platform-wide rule isn't editable per host).</p>
       <Field label="Bank / payout details"><input className="mm-input" value={data.bank || ''} onChange={e => set('bank', e.target.value)} placeholder="Account number / UPI ID" /></Field>
+      {saveError && (
+        <p role="alert" style={{ fontSize: '12px', color: '#A8452F', background: '#F7E4E0', border: '1px solid #E0A79A', borderRadius: '8px', padding: '9px 11px', margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <IconAlert />{saveError}
+        </p>
+      )}
       <div className="mm-modal-actions">
-        <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel}>Cancel</button>
-        <button type="submit" className="mm-btn mm-btn-primary">Save host</button>
+        <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel} disabled={saving}>Cancel</button>
+        <button type="submit" className="mm-btn mm-btn-primary" disabled={saving || syncing} style={{ opacity: (saving || syncing) ? 0.6 : 1 }}>
+          {saving ? 'Saving…' : syncing ? 'Updating totals…' : 'Save host'}
+        </button>
       </div>
     </ModalShell>
   );

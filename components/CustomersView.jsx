@@ -20,7 +20,7 @@ import {
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
-export function CustomersView({ customers, bookings, onAdd, onEdit, onDelete, canEdit }) {
+export function CustomersView({ customers, bookingsByCustomer, onAdd, onEdit, onDelete, canEdit }) {
   return (
     <div>
       <div className="mm-page-head" style={{ marginBottom: '18px' }}>
@@ -34,7 +34,9 @@ export function CustomersView({ customers, bookings, onAdd, onEdit, onDelete, ca
       {customers.length === 0 ? <EmptyState text="No customers yet. Add customers here or directly from a booking." /> : (
         <div className="mm-card-grid">
           {customers.map(c => {
-            const cb = bookings.filter(b => b.customerId === c.id && b.status !== 'cancelled' && b.status !== 'no-show');
+            // Precomputed by App: this used to scan every booking once per
+            // customer card, on every render.
+            const cb = (bookingsByCustomer && bookingsByCustomer.get(c.id)) || [];
             const total = cb.reduce((s, b) => s + (Number(b.rentalAmount) || 0), 0);
             const repeat = cb.length >= 2;
             return (

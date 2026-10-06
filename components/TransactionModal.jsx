@@ -20,9 +20,18 @@ import {
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
-export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSave }) {
+export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSave, saving, syncing, saveError }) {
   const [data, setData] = useState(form);
+  const [amountTouched, setAmountTouched] = useState(false);
   const set = (k, v) => setData(d => ({ ...d, [k]: v }));
+  useEffect(() => {
+    // A payout form can be opened while a previous payment is refreshing the
+    // ledger. Rebase its suggested amount on the fresh balance before saving.
+    if (syncing || amountTouched || data.id || data.category !== HOST_PAYOUT_CATEGORY || !data.bookingId || !String(data.note || '').startsWith('Payout for ')) return;
+    const booking = bookings.find(b => b.id === data.bookingId);
+    const amount = Number(booking?.calc?.payoutBalance) || 0;
+    if (booking && Number(data.amount) !== amount) setData(current => ({ ...current, amount }));
+  }, [syncing, bookings, amountTouched, data.id, data.category, data.bookingId, data.note, data.amount]);
   const isIncome = data.type === 'income';
   const isPayout = !isIncome && data.category === HOST_PAYOUT_CATEGORY;
   const isRefund = !isIncome && data.category === REFUND_CATEGORY;
@@ -75,7 +84,7 @@ export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSav
         </Field>
       )}
       <div className="mm-form-grid">
-        <Field label="Amount (₹)"><input type="number" min="0" required className="mm-input" value={data.amount || ''} onChange={e => set('amount', e.target.value)} /></Field>
+        <Field label="Amount (₹)"><input type="number" min="0" required className="mm-input" value={data.amount || ''} onChange={e => { setAmountTouched(true); set('amount', e.target.value); }} /></Field>
         <Field label="Mode">
           <select className="mm-input" value={data.mode || 'online'} onChange={e => set('mode', e.target.value)}>
             <option value="online">Online</option>
@@ -89,9 +98,16 @@ export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSav
         </p>
       )}
       <Field label="Note"><input className="mm-input" value={data.note || ''} onChange={e => set('note', e.target.value)} placeholder="What was this for?" /></Field>
+      {saveError && (
+        <p role="alert" style={{ fontSize: '12px', color: '#A8452F', background: '#F7E4E0', border: '1px solid #E0A79A', borderRadius: '8px', padding: '9px 11px', margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <IconAlert />{saveError}
+        </p>
+      )}
       <div className="mm-modal-actions">
-        <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel}>Cancel</button>
-        <button type="submit" className="mm-btn mm-btn-primary">Save entry</button>
+        <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel} disabled={saving}>Cancel</button>
+        <button type="submit" className="mm-btn mm-btn-primary" disabled={saving || syncing} style={{ opacity: (saving || syncing) ? 0.6 : 1 }}>
+          {saving ? 'Saving…' : syncing ? 'Updating totals…' : 'Save entry'}
+        </button>
       </div>
     </ModalShell>
   );

@@ -20,7 +20,7 @@ import {
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
-export function VehicleModal({ form, hosts, onCancel, onSave }) {
+export function VehicleModal({ form, hosts, onCancel, onSave, saving, syncing, saveError }) {
   const [data, setData] = useState(form);
   const set = (k, v) => setData(d => ({ ...d, [k]: v }));
   function submit(e) { e.preventDefault(); if (!data.regNumber || !data.make || !data.model || !data.hostId) return; onSave(data); }
@@ -95,9 +95,16 @@ export function VehicleModal({ form, hosts, onCancel, onSave }) {
       )}
       <Field label="Extra hour rate (₹/hr)" hint="charged when a booking runs past its return time"><input type="number" min="0" placeholder="e.g. 150" className="mm-input" value={data.extraHourRate || ''} onChange={e => set('extraHourRate', e.target.value)} /></Field>
       <Field label="Commission % override (optional)" hint="applies to rental & extra hours only"><input type="number" min="0" max="100" placeholder="Leave blank to use host's default" className="mm-input" value={data.commissionRate || ''} onChange={e => set('commissionRate', e.target.value)} /></Field>
+      {saveError && (
+        <p role="alert" style={{ fontSize: '12px', color: '#A8452F', background: '#F7E4E0', border: '1px solid #E0A79A', borderRadius: '8px', padding: '9px 11px', margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <IconAlert />{saveError}
+        </p>
+      )}
       <div className="mm-modal-actions">
-        <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel}>Cancel</button>
-        <button type="submit" className="mm-btn mm-btn-primary">Save vehicle</button>
+        <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel} disabled={saving}>Cancel</button>
+        <button type="submit" className="mm-btn mm-btn-primary" disabled={saving || syncing} style={{ opacity: (saving || syncing) ? 0.6 : 1 }}>
+          {saving ? 'Saving…' : syncing ? 'Updating totals…' : 'Save vehicle'}
+        </button>
       </div>
     </ModalShell>
   );
