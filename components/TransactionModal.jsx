@@ -23,7 +23,26 @@ import { computeBooking } from '@/lib/computeBooking';
 export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSave, saving, syncing, saveError }) {
   const [data, setData] = useState(form);
   const [amountTouched, setAmountTouched] = useState(false);
+  const [formError, setFormError] = useState('');
   const set = (k, v) => setData(d => ({ ...d, [k]: v }));
+  function changeType(type) {
+    setData(d => {
+      const category = type === d.type
+        ? d.category
+        : (type === 'income' ? INCOME_CATEGORIES[0] : EXPENSE_CATEGORIES.find(c => c !== HOST_PAYOUT_CATEGORY && c !== REFUND_CATEGORY));
+      // A payment converted to an expense must never silently become a host
+      // payout or retain the old booking link. The user can select those again.
+      return { ...d, type, category, bookingId: '' };
+    });
+    setFormError('');
+  }
+  function changeCategory(category) {
+    setData(d => {
+      const hasBookingLink = d.type === 'income' || category === HOST_PAYOUT_CATEGORY || category === REFUND_CATEGORY;
+      return { ...d, category, bookingId: hasBookingLink ? d.bookingId : '' };
+    });
+    setFormError('');
+  }
   useEffect(() => {
     // A payout form can be opened while a previous payment is refreshing the
     // ledger. Rebase its suggested amount on the fresh balance before saving.
@@ -55,13 +74,27 @@ export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSav
   }, [linkedBooking, isPayout, isRefund, isIncome]);
   function submit(e) {
     e.preventDefault();
-    if (!data.date || !data.amount || !data.category) return;
-    onSave(data);
+    const amount = Number(data.amount);
+    const categories = data.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+    if (!data.date || !Number.isFinite(new Date(data.date).getTime())) {
+      setFormError('Choose a valid transaction date.');
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setFormError('Enter an amount greater than ₹0.');
+      return;
+    }
+    if (!categories.includes(data.category)) {
+      setFormError('Choose a category that matches the entry type.');
+      return;
+    }
+    setFormError('');
+    onSave({ ...data, amount, bookingId: showBookingLink ? data.bookingId : '' });
   }
   return (
     <ModalShell title={data.id ? 'Edit entry' : (isIncome ? 'New income' : 'New expense')} onCancel={onCancel} onSubmit={submit}>
       <Field label="Type">
-        <select className="mm-input" value={data.type} onChange={e => set('type', e.target.value)}>
+        <select className="mm-input" value={data.type} onChange={e => changeType(e.target.value)}>
           <option value="income">Income</option>
           <option value="expense">Expense</option>
         </select>
@@ -69,7 +102,7 @@ export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSav
       <div className="mm-form-grid">
         <Field label="Date"><input type="date" required className="mm-input" value={data.date || ''} onChange={e => set('date', e.target.value)} /></Field>
         <Field label="Category">
-          <select className="mm-input" value={data.category || ''} onChange={e => set('category', e.target.value)}>
+          <select className="mm-input" value={data.category || ''} onChange={e => changeCategory(e.target.value)}>
             {(isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </Field>
@@ -103,6 +136,7 @@ export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSav
           <IconAlert />{saveError}
         </p>
       )}
+      {formError && <p role="alert" style={{ fontSize: '12px', color: '#A8452F', background: '#F7E4E0', border: '1px solid #E0A79A', borderRadius: '8px', padding: '9px 11px', margin: 0 }}>{formError}</p>}
       <div className="mm-modal-actions">
         <button type="button" className="mm-btn mm-btn-ghost" onClick={onCancel} disabled={saving}>Cancel</button>
         <button type="submit" className="mm-btn mm-btn-primary" disabled={saving || syncing} style={{ opacity: (saving || syncing) ? 0.6 : 1 }}>

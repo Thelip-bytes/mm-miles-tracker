@@ -54,7 +54,7 @@ export function HostsView({ hosts, vehicles, bookings, onAdd, onEdit, onDelete, 
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       {hostVehicles.map(v => {
-                        const isLive = bookings.some(b => b.vehicleId === v.id && b.status === 'ongoing' && !b.calc.isUpcoming);
+                        const isLive = bookings.some(b => b.vehicleId === v.id && b.timeStatus === 'ongoing');
                         return (
                           <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px' }}>
                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isLive ? '#3F6B4F' : '#B8863C', display: 'inline-block', flexShrink: 0 }}></span>

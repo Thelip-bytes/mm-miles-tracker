@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'rea
 import { api, toBookingView, fromBookingView } from '@/lib/api';
 import { HOST_PAYOUT_CATEGORY, INCOME_CATEGORIES, ROLE_PERMS } from '@/lib/constants';
 import {
-  todayStr, nowLocal, monthKey, monthLabel,
+  todayStr, nowLocal, localInputAfterHours, bookingTimeStatus, dateOnlyInTimezone, monthKey, monthLabel,
   safeGet, safeSet, getCol, parseFlexibleDateTime, parseFlexibleDate, numOrBlank
 } from '@/lib/helpers';
 import {
@@ -67,7 +67,7 @@ const toCustomer = (c) => ({
 });
 
 const toTransaction = (t) => ({
-  id: t.id, date: t.booked_on, type: t.type, category: t.category,
+  id: t.id, date: dateOnlyInTimezone(t.booked_on), type: t.type, category: t.category,
   amount: t.amount, mode: t.mode, bookingId: t.booking_id || '', note: t.note || '',
 });
 
@@ -118,12 +118,23 @@ export function App({ role, initialData, onLogout }) {
   const [showPasswordsModal, setShowPasswordsModal] = useState(false);
   // the sidebar is a slide-in drawer on tablets and phones (see .mm-sidebar)
   const [navOpen, setNavOpen] = useState(false);
+  const [clockNow, setClockNow] = useState(() => Date.now());
   const fileInputRef = useRef(null);
   const hasInitialData = useRef(!!initialData);
   const dataVersion = useRef(0);
   const refreshSequence = useRef(0);
 
   useEffect(() => { document.body.setAttribute('data-theme', theme); safeSet('mm-theme', theme); }, [theme]);
+
+  useEffect(() => {
+    const updateClock = () => setClockNow(Date.now());
+    const timer = window.setInterval(updateClock, 15_000);
+    window.addEventListener('focus', updateClock);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', updateClock);
+    };
+  }, []);
 
   useEffect(() => {
     if (!navOpen) return;
@@ -165,8 +176,33 @@ export function App({ role, initialData, onLogout }) {
 
   useEffect(() => { if (!hasInitialData.current) reload(); }, [reload]);
 
+  // The ledger can be edited from another browser or device. Refresh this
+  // in-memory view periodically and when the user returns to the tab so both
+  // screens converge on the same database snapshot without a manual reload.
+  useEffect(() => {
+    const syncIfVisible = () => {
+      if (document.visibilityState === 'visible') void reload(true);
+    };
+    const timer = window.setInterval(syncIfVisible, 60_000);
+    window.addEventListener('focus', syncIfVisible);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', syncIfVisible);
+    };
+  }, [reload]);
+
   // bookings already carry a `calc` object computed by public.booking_financials
-  const enriched = bookings;
+  const enriched = useMemo(() => {
+    const now = new Date(clockNow);
+    return bookings.map(b => {
+      const timeStatus = bookingTimeStatus(b.start, b.end, b.status, now, b.closingTime);
+      return {
+        ...b,
+        timeStatus,
+        calc: { ...b.calc, isUpcoming: timeStatus === 'upcoming', isOverdue: false },
+      };
+    });
+  }, [bookings, clockNow]);
 
   // ---------------------------------------------------------------- photos
   // Customer photos are heavy (base64 JPEGs) and only ever displayed on the
@@ -419,11 +455,6 @@ export function App({ role, initialData, onLogout }) {
     return { onlineIncome, cashIncome, onlineOutgo, cashOutgo, onlineNet: onlineIncome - onlineOutgo, cashNet: cashIncome - cashOutgo };
   }, [transactions]);
 
-  const paymentModeData = useMemo(
-    () => [{ name: 'Online', value: cashFlow.onlineIncome }, { name: 'Cash', value: cashFlow.cashIncome }].filter(d => d.value > 0),
-    [cashFlow]
-  );
-
   // ------------------------------------------------------------ excel export
   async function exportExcel() {
     setSaveError('');
@@ -448,7 +479,7 @@ export function App({ role, initialData, onLogout }) {
       'Payment status': b.calc.paymentStatus, 'Commission %': b.calc.rate, 'Total commission': b.calc.totalCommission,
       'Host payout': b.calc.hostPayout, 'Payout paid': b.calc.payoutPaidAmount, 'Payout status': b.calc.payoutStatus,
       'Refund due': b.calc.refundDue, 'Refund paid': b.calc.refundPaidAmount, 'Refund status': b.calc.refundStatus,
-      'Booking status': b.status, 'Notes': b.notes || ''
+      'Booking status': b.timeStatus, 'Notes': b.notes || ''
     }));
     const vehicleRows = vehicles.map(v => {
       const host = hostById.get(v.hostId);
@@ -783,8 +814,7 @@ export function App({ role, initialData, onLogout }) {
   const filteredBookings = useMemo(() => {
     let list = [...enriched].sort((a, b) => (b.start || '').localeCompare(a.start || ''));
     if (bookingFilter === 'payment-pending') list = list.filter(b => b.status !== 'cancelled' && b.status !== 'no-show' && b.calc.paymentStatus !== 'Paid');
-    else if (bookingFilter === 'overdue') list = list.filter(b => b.calc.isOverdue);
-    else if (bookingFilter === 'upcoming') list = list.filter(b => b.calc.isUpcoming);
+    else if (bookingFilter === 'upcoming' || bookingFilter === 'ongoing' || bookingFilter === 'completed') list = list.filter(b => b.timeStatus === bookingFilter);
     else if (bookingFilter !== 'all') list = list.filter(b => b.status === bookingFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -894,10 +924,10 @@ export function App({ role, initialData, onLogout }) {
               aria-label="Dismiss">×</button>
           </div>
         )}
-        {tab === 'overview' && perms.tabs.includes('overview') && <Overview stats={stats} chartData={chartData} paymentModeData={paymentModeData} bookings={enriched} vehicleLabel={vehicleLabel} customerName={customerName} theme={theme} />}
+        {tab === 'overview' && perms.tabs.includes('overview') && <Overview stats={stats} chartData={chartData} bookings={enriched} transactions={transactions} vehicleLabel={vehicleLabel} customerName={customerName} theme={theme} />}
         {tab === 'bookings' && perms.tabs.includes('bookings') && (
           <Bookings bookings={filteredBookings} vehicles={vehicles} filter={bookingFilter} setFilter={setBookingFilter} search={search} setSearch={setSearch}
-            onAdd={() => setBookingForm({ start: nowLocal(), end: nowLocal(), days: 1, status: 'ongoing' })}
+            onAdd={() => { const start = nowLocal(); setBookingForm({ start, end: localInputAfterHours(start, 24), days: 1, status: 'ongoing' }); }}
             onEdit={(b) => setBookingForm(b)} onView={(b) => setBookingForm(b)}
             onDelete={(id) => setDeleteConfirm({ type: 'booking', id, label: `booking ${bookingById.get(id)?.code || ''}` })}
             vehicleLabel={vehicleLabel} customerName={customerName} perms={perms} />
@@ -932,7 +962,7 @@ export function App({ role, initialData, onLogout }) {
         )}
       </main>
 
-      {bookingForm && <BookingModal form={bookingForm} vehicles={vehicles} hosts={hosts} customers={customers} transactions={transactions} bookings={bookings} onCancel={() => setBookingForm(null)} onSave={saveBooking} onQuickAddCustomer={quickAddCustomer} readOnly={!perms.canEditBooking(bookingForm)} canFinance={perms.canFinance} canOverridePrice={perms.canOverridePrice} canBypassTimeGuards={perms.canBypassTimeGuards} saving={saving} syncing={refreshing} saveError={saveError} onDismissError={() => setSaveError('')} />}
+      {bookingForm && <BookingModal form={bookingForm} vehicles={vehicles} hosts={hosts} customers={customers} transactions={transactions} bookings={bookings} onCancel={() => setBookingForm(null)} onSave={saveBooking} onQuickAddCustomer={quickAddCustomer} readOnly={!perms.canEditBooking(bookingForm)} canFinance={perms.canFinance} canOverridePrice={perms.canOverridePrice} canBypassTimeGuards={perms.canBypassTimeGuards} canQuickAddCustomer={perms.canQuickAddCustomer} saving={saving} syncing={refreshing} saveError={saveError} onDismissError={() => setSaveError('')} />}
       {vehicleForm && <VehicleModal form={vehicleForm} hosts={hosts} onCancel={() => setVehicleForm(null)} onSave={saveVehicle} saving={saving} syncing={refreshing} saveError={saveError} />}
       {hostForm && <HostModal form={hostForm} onCancel={() => setHostForm(null)} onSave={saveHost} saving={saving} syncing={refreshing} saveError={saveError} />}
       {customerForm && <CustomerModal form={customerForm} photos={customerPhotos[customerForm.id]} onCancel={() => setCustomerForm(null)} onSave={saveCustomer} saving={saving} syncing={refreshing} saveError={saveError} />}

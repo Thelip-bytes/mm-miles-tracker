@@ -16,7 +16,7 @@ import {
   refundTierFor, multiDayDiscountFor, uid, todayStr, nowLocal, nowLocalMinus, money, monthKey,
   monthLabel, nextBookingCode, safeGet, safeSet, getCol, pad2, toLocalInputStr,
   toDateInputStr, parseFlexibleDateTime, parseFlexibleDate, numOrBlank,
-  compressImageFile, migrateTransactions
+  compressImageFile, migrateTransactions, bookingTimeStatus
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
@@ -45,7 +45,7 @@ function wasRateCardDiscounted(form, vehicles) {
   return withDiscount !== Math.round(base) && Number(form.rentalAmount) === withDiscount;
 }
 
-export function BookingModal({ form, vehicles, hosts, customers, transactions, bookings, onCancel, onSave, onQuickAddCustomer, readOnly, canFinance, canOverridePrice, canBypassTimeGuards, saving, syncing, saveError, onDismissError }) {
+export function BookingModal({ form, vehicles, hosts, customers, transactions, bookings, onCancel, onSave, onQuickAddCustomer, readOnly, canFinance, canOverridePrice, canBypassTimeGuards, canQuickAddCustomer, saving, syncing, saveError, onDismissError }) {
   const [data, setData] = useState(form);
   // New bookings start with no discount. Existing rate-card bookings recover
   // the choice from their saved rental amount, so no database migration is
@@ -59,8 +59,30 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
   const [closingError, setClosingError] = useState('');
   const errorRef = useRef(null);
   const startRef = useRef(null);
+  const endRef = useRef(null);
   const set = (k, v) => setData(d => ({ ...d, [k]: v }));
   const setNC = (k, v) => setNewCustomer(d => ({ ...d, [k]: v }));
+  const setBookingDate = (key, value) => setData(d => {
+    const next = { ...d, [key]: value };
+    // Closing readings and charges describe the actual return. Changing the
+    // schedule clears those values so status and duration follow the new dates.
+    if (d[key] !== value && (d.closingTime || d.status === 'completed')) {
+      next.closingTime = '';
+      if (d.status === 'completed') next.status = 'ongoing';
+      next.endKm = '';
+      next.extraHours = 0;
+      next.extraHourCharge = 0;
+      next.extraKm = 0;
+      next.extraKmCharge = 0;
+    }
+    const duration = new Date(next.end) - new Date(next.start);
+    if (duration > 0) next.days = Math.max(1, Math.ceil(duration / (24 * 60 * 60 * 1000)));
+    return next;
+  });
+  const clearClosingTime = () => {
+    setData(d => ({ ...d, closingTime: '', endKm: '', extraHours: 0, extraHourCharge: 0, extraKm: 0, extraKmCharge: 0, status: d.status === 'completed' ? 'ongoing' : d.status }));
+    setClosingError('');
+  };
 
   // The parent owns the customer list and appends the saved row to it, so there
   // is nothing to merge here. (This used to keep a client-side copy keyed by a
@@ -116,7 +138,6 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
   const baseHourlyRate = vehicle ? Number(vehicle.hourlyRate) || 0 : 0;
   const hasRateCard = dailyRate > 0;
   const priceLocked = hasRateCard && data.priceOverridden !== true;
-  const datesLocked = !!data.id && !canBypassTimeGuards;
 
   const pricingInfo = useMemo(() => {
     if (!data.start || !data.end || !vehicle) return { amount: 0, breakdown: '', discountPercent: 0 };
@@ -234,25 +255,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
   const closingFieldsComplete = useMemo(() => {
     return REQUIRED_ALWAYS.every(k => data[k] !== undefined && data[k] !== null && data[k] !== '');
   }, [data]);
-  const timeAllowsCompletion = useMemo(() => {
-    if (data.closingTime) return true;
-    if (!data.end) return false;
-    return new Date() >= new Date(data.end);
-  }, [data.closingTime, data.end]);
-  const canMarkCompleted = closingFieldsComplete && (canBypassTimeGuards || timeAllowsCompletion);
-  const displayStatus = useMemo(() => {
-    if (data.status === 'completed') return 'Completed';
-    if (data.status === 'cancelled') return 'Cancelled';
-    if (data.status === 'no-show') return 'No show';
-    if (data.start && new Date() < new Date(data.start)) return 'Upcoming';
-    return 'Ongoing';
-  }, [data.status, data.start]);
-
-  useEffect(() => {
-    if (data.status === 'ongoing' && closingFieldsComplete && (canBypassTimeGuards || timeAllowsCompletion)) {
-      set('status', 'completed');
-    }
-  }, [data.status, closingFieldsComplete, timeAllowsCompletion, canBypassTimeGuards]);
+  const displayStatus = bookingTimeStatus(data.start, data.end, data.status, new Date(), data.closingTime);
 
   useEffect(() => {
     if (data.status === 'cancelled' && !data.cancelledAt) set('cancelledAt', nowLocal());
@@ -272,7 +275,16 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
     e.preventDefault();
     if (saving || addingCustomer) return;
     if (readOnly) { onCancel(); return; }
-    if (!data.vehicleId || !data.customerId || !data.start || !data.end || !data.rentalAmount || data.startKm === undefined || data.startKm === '') {
+    if (!data.start || !data.end) {
+      setClosingError('Choose both a booking start and return date and time.');
+      return;
+    }
+    if (new Date(data.end) <= new Date(data.start)) {
+      setClosingError('The return date and time must be later than the start date and time. Update the dates; the booking duration and price will recalculate automatically.');
+      if (endRef.current) { endRef.current.focus(); endRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+      return;
+    }
+    if (!data.vehicleId || !data.customerId || data.rentalAmount === undefined || data.rentalAmount === '' || data.startKm === undefined || data.startKm === '') {
       setClosingError('Fill in vehicle, customer, dates, rental amount, and the start km reading before saving.');
       return;
     }
@@ -288,27 +300,17 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
         return;
       }
     }
-    if (datesLocked && data.start !== form.start) {
-      setClosingError('The booking\u2019s start time is locked once saved \u2014 ask an admin to change it.');
-      return;
-    }
-    if (datesLocked && new Date(data.end) < new Date(form.end)) {
-      setClosingError('The return time can only be extended later, not moved earlier \u2014 ask an admin for that change.');
-      return;
-    }
     const conflict = (bookings || []).find(b => b.id !== data.id && b.vehicleId === data.vehicleId && b.status !== 'cancelled' && b.status !== 'no-show' && new Date(data.start) < new Date(b.end) && new Date(b.start) < new Date(data.end));
     if (conflict) { setClosingError(`This vehicle is already booked as ${conflict.code} from ${(conflict.start || '').replace('T', ' ')} to ${(conflict.end || '').replace('T', ' ')}. Adjust the dates or pick another vehicle.`); return; }
     if (data.priceOverridden && !String(data.priceOverrideReason || '').trim()) {
       setClosingError('Enter a reason for overriding the rate-card price before saving.');
       return;
     }
-    if (data.status === 'completed') {
-      const missing = REQUIRED_ALWAYS.some(k => data[k] === undefined || data[k] === null || data[k] === '');
-      if (missing) { setClosingError('Fill in every trip-closing field below (use 0 where there\u2019s nothing to charge) before marking this booking completed.'); return; }
-      if (!canBypassTimeGuards && !timeAllowsCompletion) { setClosingError('Can\u2019t mark completed until the planned return time passes, or an actual closing time is entered (for an early return).'); return; }
-    }
     setClosingError('');
-    onSave(data);
+    const status = data.status === 'cancelled' || data.status === 'no-show'
+      ? data.status
+      : (displayStatus === 'completed' && closingFieldsComplete ? 'completed' : 'ongoing');
+    onSave({ ...data, status });
   }
 
   // Both the field-level and the server-level error render at the TOP of the
@@ -343,15 +345,19 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
         </Field>
         <Field label="Customer">
           <div style={{ display: 'flex', gap: '6px' }}>
-            <select required className="mm-input" value={data.customerId || ''} onChange={e => set('customerId', e.target.value)}>
+            <select required className="mm-input" style={{ flex: 1, minWidth: 0 }} value={data.customerId || ''} onChange={e => set('customerId', e.target.value)}>
               <option value="">Select customer</option>
-              {allCustomers.map(c => <option key={c.id} value={c.id}>{c.name}{c.aadhar ? ` · ${c.aadhar}` : ''}</option>)}
+              {allCustomers.map(c => {
+                const phoneDigits = String(c.phone || '').replace(/\D/g, '');
+                const shortPhone = phoneDigits ? ` · •••• ${phoneDigits.slice(-4)}` : '';
+                return <option key={c.id} value={c.id}>{c.name}{shortPhone}</option>;
+              })}
             </select>
-            <button type="button" className="mm-btn mm-btn-ghost" style={{ whiteSpace: 'nowrap' }} onClick={() => setShowNewCustomer(s => !s)}><IconPlus size={13} /> New</button>
+            {canQuickAddCustomer && <button type="button" className="mm-btn mm-btn-ghost" style={{ whiteSpace: 'nowrap' }} onClick={() => setShowNewCustomer(s => !s)}><IconPlus size={13} /> New</button>}
           </div>
         </Field>
       </div>
-      {showNewCustomer && (
+      {canQuickAddCustomer && showNewCustomer && (
         <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <Field label="Customer name *"><input required className="mm-input" value={newCustomer.name} onChange={e => setNC('name', e.target.value)} placeholder="Full name" /></Field>
           <div className="mm-form-grid" style={{ gap: '10px' }}>
@@ -374,13 +380,13 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
         </div>
       )}
       <div className="mm-form-grid" style={{ '--cols': 'minmax(0, 1fr) minmax(0, 1fr) 60px' }}>
-        <Field label="Start" hint={datesLocked ? 'locked after saving — ask admin to change' : (!data.id && !canBypassTimeGuards) ? 'can\u2019t be backdated' : null}>
-          <input ref={startRef} type="datetime-local" required readOnly={datesLocked} min={(!data.id && !canBypassTimeGuards) ? startMin : undefined} className="mm-input" value={data.start || ''} onChange={e => set('start', e.target.value)} />
+        <Field label="Start" hint={!data.id && !canBypassTimeGuards ? 'can\u2019t be backdated' : null}>
+          <input ref={startRef} type="datetime-local" required min={(!data.id && !canBypassTimeGuards) ? startMin : undefined} className="mm-input" value={data.start || ''} onChange={e => setBookingDate('start', e.target.value)} />
         </Field>
-        <Field label="End" hint={datesLocked ? 'can be extended later, but not moved earlier' : null}>
-          <input type="datetime-local" required min={datesLocked ? form.end : undefined} className="mm-input" value={data.end || ''} onChange={e => set('end', e.target.value)} />
+        <Field label="End" hint="must be after start">
+          <input ref={endRef} type="datetime-local" required min={data.start || undefined} className="mm-input" aria-invalid={!!(data.start && data.end && new Date(data.end) <= new Date(data.start))} value={data.end || ''} onInvalid={e => { if (data.start && data.end && new Date(data.end) <= new Date(data.start)) e.currentTarget.setCustomValidity('Return time must be later than start time.'); }} onChange={e => { e.currentTarget.setCustomValidity(''); setBookingDate('end', e.target.value); }} />
         </Field>
-        <Field label="Days"><input type="number" min="1" readOnly={datesLocked} className="mm-input" value={data.days || 1} onChange={e => set('days', e.target.value)} /></Field>
+        <Field label="Days" hint="calculated from dates"><input type="number" min="1" readOnly className="mm-input" value={data.days || 1} /></Field>
       </div>
       <div className="mm-form-grid">
         <Field label="Rental amount (₹)" hint={priceLocked ? pricingInfo.breakdown : (hasRateCard ? 'overridden' : 'no rate card set for this vehicle')}>
@@ -436,7 +442,10 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <Field label="Closing time (actual return)" hint={canBypassTimeGuards ? 'required to complete' : "required to complete — can't be in the future"}>
-            <input type="datetime-local" max={canBypassTimeGuards ? undefined : nowLocal()} min={data.start || undefined} className="mm-input" value={data.closingTime || ''} onChange={e => set('closingTime', e.target.value)} />
+            <div style={{ display: 'flex', alignItems: 'stretch', gap: '6px' }}>
+              <input type="datetime-local" max={canBypassTimeGuards ? undefined : nowLocal()} min={data.start || undefined} className="mm-input" style={{ flex: 1, minWidth: 0 }} value={data.closingTime || ''} onChange={e => set('closingTime', e.target.value)} />
+              {data.closingTime && <button type="button" className="mm-icon-btn" aria-label="Clear closing time" title="Clear closing time" onClick={clearClosingTime} style={{ flexShrink: 0, width: '42px', border: '1px solid var(--border)', borderRadius: '6px', background: 'var(--input-bg)', color: 'var(--text-muted)' }}><IconClose /></button>}
+            </div>
           </Field>
           <div className="mm-form-grid">
             <ChargeRow label="Extra hours" amountKey="extraHours" data={data} set={set} readOnly={!!(data.closingTime && data.end)} rateHint={data.closingTime && data.end ? 'auto from closing time vs. end' : null} />
@@ -480,26 +489,16 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
         {!data.id && <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '8px 0 0' }}>Save the booking first, then log its payment{canFinance ? ' and payout' : ''} from "Income, expenses & cash flow" linked to this booking's code.</p>}
       </div>
 
-      <Field label="Booking status" hint={!canBypassTimeGuards ? 'system-determined — Cancel/No-show are the only manual actions' : null}>
-        {canBypassTimeGuards ? (
-          <select className="mm-input" value={data.status || 'ongoing'} onChange={e => { set('status', e.target.value); setClosingError(''); }}>
-            <option value="ongoing">Ongoing</option><option value="completed" disabled={!canMarkCompleted}>Completed</option><option value="cancelled">Cancelled</option><option value="no-show">No show</option>
-          </select>
-        ) : (
-          <Fragment>
-            <div className="mm-input" style={{ background: 'var(--card-bg)', color: 'var(--text-muted)', cursor: 'default' }}>{displayStatus}</div>
-            {data.status === 'ongoing' && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-                <button type="button" className="mm-btn mm-btn-ghost mm-btn-sm" onClick={() => { set('status', 'cancelled'); setClosingError(''); }}>Cancel booking</button>
-                <button type="button" className="mm-btn mm-btn-ghost mm-btn-sm" onClick={() => { set('status', 'no-show'); setClosingError(''); }}>Mark no-show</button>
-              </div>
-            )}
-          </Fragment>
+      <Field label="Booking status" hint="updates from the current time and these dates">
+        <div className="mm-input" aria-live="polite" style={{ background: 'var(--card-bg)', color: 'var(--text-heading)', textTransform: 'capitalize' }}>{displayStatus === 'no-show' ? 'No show' : displayStatus}</div>
+        {(displayStatus === 'upcoming' || displayStatus === 'ongoing') && data.status !== 'cancelled' && data.status !== 'no-show' && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+            <button type="button" className="mm-btn mm-btn-ghost mm-btn-sm" onClick={() => { set('status', 'cancelled'); setClosingError(''); }}>Cancel booking</button>
+            {displayStatus === 'ongoing' && <button type="button" className="mm-btn mm-btn-ghost mm-btn-sm" onClick={() => { set('status', 'no-show'); setClosingError(''); }}>Mark no-show</button>}
+          </div>
         )}
-        {data.status === 'ongoing' && (
-          <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '4px 0 0' }}>
-            {!closingFieldsComplete ? 'Fill in every trip-closing field above, including the closing time (use 0 where nothing applies) \u2014 this booking will mark itself Completed automatically once it\u2019s all in.' : 'Ready to close \u2014 saving now will mark this Completed.'}
-          </p>
+        {displayStatus === 'completed' && !closingFieldsComplete && (
+          <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '4px 0 0' }}>The return time has passed. Fill in the trip-closing details to finalize this booking.</p>
         )}
       </Field>
 

@@ -40,15 +40,48 @@ export function periodRange(period, customStart, customEnd) {
   return { start: null, end: null, label: 'all time' };
 }
 
-export function Overview({ stats, chartData, paymentModeData, bookings, vehicleLabel, customerName, theme }) {
+export function Overview({ stats, chartData, bookings, transactions, vehicleLabel, customerName, theme }) {
   const [period, setPeriod] = useState('current');
   const [customStart, setCustomStart] = useState(todayStr());
   const [customEnd, setCustomEnd] = useState(todayStr());
   const range = useMemo(() => periodRange(period, customStart, customEnd), [period, customStart, customEnd]);
   const periodStats = useMemo(() => {
     const active = bookings.filter(b => b.status !== 'cancelled' && b.status !== 'no-show' && (!range.start || (new Date(b.start) >= range.start && new Date(b.start) <= range.end)));
-    return { sales: active.reduce((s, b) => s + b.calc.rental, 0), commission: active.reduce((s, b) => s + b.calc.totalCommission, 0) };
+    const chargeLines = [
+      ['extra hours', 'extraHourCharge'],
+      ['extra km', 'extraKmCharge'],
+      ['damage', 'damageAmount'],
+      ['fuel', 'fuelAmount'],
+      ['fine', 'fineAmount'],
+      ['toll', 'tollAmount'],
+    ].map(([label, key]) => [label, active.reduce((sum, b) => sum + (Number(b.calc[key]) || 0), 0)])
+      .filter(([, amount]) => amount > 0);
+    const tripChargeSummary = chargeLines.map(([label, amount]) => `${label} ₹${money(amount)}`).join(', ');
+    return {
+      sales: active.reduce((s, b) => s + b.calc.rental, 0),
+      commission: active.reduce((s, b) => s + b.calc.totalCommission, 0),
+      tripChargeSummary,
+    };
   }, [bookings, range]);
+  const periodLedger = useMemo(() => {
+    const inRange = transactions.filter(t => {
+      if (!range.start) return true;
+      const date = String(t.date || '').slice(0, 10);
+      return !!date && date >= toDateInputStr(range.start) && date <= toDateInputStr(range.end);
+    });
+    const expenses = new Map();
+    for (const t of inRange) {
+      if (t.type === 'expense') expenses.set(t.category, (expenses.get(t.category) || 0) + (Number(t.amount) || 0));
+    }
+    return {
+      paymentModeData: ['online', 'cash'].map(mode => ({
+        name: mode === 'online' ? 'Online' : 'Cash',
+        value: inRange.filter(t => t.type === 'income' && t.mode === mode).reduce((sum, t) => sum + (Number(t.amount) || 0), 0),
+      })).filter(row => row.value > 0),
+      expenseCategoryData: [...expenses.entries()].map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value),
+    };
+  }, [transactions, range]);
+  const expenseTotal = periodLedger.expenseCategoryData.reduce((sum, row) => sum + row.value, 0);
   const recent = [...bookings].sort((a, b) => (b.start || '').localeCompare(a.start || '')).slice(0, 5);
   const periodOptions = [['current', 'Current month'], ['last', 'Last month'], ['all', 'Overall'], ['custom', 'Custom range']];
   return (
@@ -72,20 +105,27 @@ export function Overview({ stats, chartData, paymentModeData, bookings, vehicleL
         </div>
       </div>
       <div className="mm-stats-4" style={{ marginBottom: '26px' }}>
-        <StatCard label="Sales" value={periodStats.sales} sub={range.label} tone="default" />
+        <StatCard label="Sales" value={periodStats.sales} sub={[range.label, periodStats.tripChargeSummary && `${periodStats.tripChargeSummary} billed separately`].filter(Boolean).join(' · ')} tone="default" />
         <StatCard label="Platform commission" value={periodStats.commission} sub={range.label} tone="gold" />
         <StatCard label="Host payouts pending" value={stats.pendingPayouts} sub="see Payouts tab" tone="bad" />
-        <StatCard label="Collections pending" value={stats.pendingFromCustomers} sub="not yet paid by customers" tone="bad" />
+        <StatCard label="Collections pending" value={stats.pendingFromCustomers} sub="unpaid balances across active bookings; includes trip charges" tone="bad" />
       </div>
       <div className="mm-split" style={{ marginBottom: '26px' }}>
         <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '18px 20px' }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 14px' }}>Sales vs platform commission, last 6 months</p>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 14px' }}>Rental sales vs platform commission, last 6 months</p>
           <div style={{ height: 200 }}><BarPanel data={chartData} dark={theme === 'dark'} /></div>
         </div>
         <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '18px 20px' }}>
-          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 14px' }}>Payment mode split</p>
-          <div style={{ height: 200 }}><PiePanel data={paymentModeData} dark={theme === 'dark'} /></div>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 14px' }}>Payments received by mode · {range.label}</p>
+          <div style={{ height: 200 }}><PiePanel data={periodLedger.paymentModeData} dark={theme === 'dark'} emptyText={`No payments logged for ${range.label}`} /></div>
         </div>
+      </div>
+      <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '18px 20px', marginBottom: '26px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 14px' }}>Recorded expenses by category · {range.label}</p>
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontFamily: '"IBM Plex Mono", monospace' }}>Total ₹{money(expenseTotal)}</span>
+        </div>
+        <div style={{ height: 200 }}><PiePanel data={periodLedger.expenseCategoryData} dark={theme === 'dark'} emptyText={`No expense entries for ${range.label}`} /></div>
       </div>
       <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '18px 20px' }}>
         <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 12px' }}>Recent bookings</p>

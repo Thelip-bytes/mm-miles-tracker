@@ -45,7 +45,7 @@ export function BarPanel({ data, dark }) {
   return <canvas ref={ref} height="200"></canvas>;
 }
 
-export function PiePanel({ data, dark }) {
+export function PiePanel({ data, dark, emptyText = 'No payments logged yet' }) {
   const ref = useRef(null); const chartRef = useRef(null);
   const tickColor = dark ? '#A8AEC4' : '#6B6555';
   useEffect(() => {
@@ -56,12 +56,12 @@ export function PiePanel({ data, dark }) {
       if (chartRef.current) chartRef.current.destroy();
       chartRef.current = new Chart(ref.current, {
         type: 'doughnut',
-        data: { labels: data.map(d => d.name), datasets: [{ data: data.map(d => d.value), backgroundColor: PIE_COLORS }] },
+        data: { labels: data.map(d => d.name), datasets: [{ data: data.map(d => d.value), backgroundColor: data.map((_, i) => PIE_COLORS[i % PIE_COLORS.length]) }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 11, family: 'Inter' }, color: tickColor } }, tooltip: { callbacks: { label: (c) => `${c.label}: ₹${money(c.raw)}` } } } }
       });
     });
     return () => { cancelled = true; if (chartRef.current) { chartRef.current.destroy(); chartRef.current = null; } };
   }, [data, dark]);
-  if (data.length === 0) return <p style={{ fontSize: '12px', color: 'var(--text-faint)', textAlign: 'center', marginTop: '50px' }}>No payments logged yet</p>;
+  if (data.length === 0) return <p style={{ fontSize: '12px', color: 'var(--text-faint)', textAlign: 'center', marginTop: '50px' }}>{emptyText}</p>;
   return <canvas ref={ref} height="200"></canvas>;
 }

@@ -6,6 +6,7 @@ import {
   IconGrid, IconCar, IconKey, IconUsers, IconReceipt, IconWallet, IconChevron,
   IconSun, IconMoon, IconUpload, IconEye, IconLock, IconCamera
 } from './icons';
+import { labelStyle } from './ui';
 import { Field, StatCard, Stub, EmptyState, ModalShell, PayoutBreakdown, LinkedEntriesList, ChargeRow } from './ui';
 import {
   HOST_PAYOUT_CATEGORY, REFUND_CATEGORY, EXPENSE_CATEGORIES, INCOME_CATEGORIES,

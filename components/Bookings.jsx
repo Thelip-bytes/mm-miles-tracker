@@ -21,7 +21,7 @@ import {
 import { computeBooking } from '@/lib/computeBooking';
 
 export function Bookings({ bookings, vehicles, filter, setFilter, search, setSearch, onAdd, onEdit, onView, onDelete, vehicleLabel, customerName, perms }) {
-  const filters = [['all', 'All'], ['upcoming', 'Upcoming'], ['overdue', 'Overdue'], ['ongoing', 'Ongoing'], ['completed', 'Completed'], ['cancelled', 'Cancelled'], ['no-show', 'No show'], ['payment-pending', 'Payment pending']];
+  const filters = [['all', 'All'], ['upcoming', 'Upcoming'], ['ongoing', 'Ongoing'], ['completed', 'Completed'], ['cancelled', 'Cancelled'], ['no-show', 'No show'], ['payment-pending', 'Payment pending']];
   return (
     <div>
       <div className="mm-page-head" style={{ marginBottom: '18px' }}>
@@ -58,7 +58,7 @@ export function Bookings({ bookings, vehicles, filter, setFilter, search, setSea
             <div style={{ width: '44px' }}></div>
           </div>
           {bookings.map(b => (
-            <div key={b.id} style={{ background: 'var(--card-bg)', border: b.calc.isOverdue ? '1px solid #A8452F' : '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
+            <div key={b.id} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
               <Stub>
                 <div className="mm-bk-row">
                   <div className="mm-bk-code">
@@ -74,10 +74,7 @@ export function Bookings({ bookings, vehicles, filter, setFilter, search, setSea
                     <span className="mm-tag" style={{ background: b.calc.paymentStatus === 'Paid' ? '#E1EFE4' : b.calc.paymentStatus === 'Partial' ? '#FBEFD9' : '#F7E4E0', color: b.calc.paymentStatus === 'Paid' ? '#3F6B4F' : b.calc.paymentStatus === 'Partial' ? '#8A5E1E' : '#A8452F' }}>{b.calc.paymentStatus}</span>
                   </div>
                   <div className="mm-bk-tags">
-                    <span className="mm-tag" style={{ background: b.status === 'completed' ? '#E1EFE4' : (b.status === 'cancelled' || b.status === 'no-show') ? '#F7E4E0' : b.calc.isUpcoming ? '#E6F0FA' : 'var(--border-light)', color: b.status === 'completed' ? '#3F6B4F' : (b.status === 'cancelled' || b.status === 'no-show') ? '#A8452F' : b.calc.isUpcoming ? '#1D5A9E' : '#6B6555', textTransform: 'capitalize' }}>{b.status === 'no-show' ? 'No show' : b.calc.isUpcoming ? 'Upcoming' : b.status}</span>
-                    {b.calc.isOverdue && (
-                      <span className="mm-tag" style={{ background: '#A8452F', color: '#FFFFFF', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><IconAlert size={11} />Overdue — return time passed</span>
-                    )}
+                    <span className="mm-tag" style={{ background: b.timeStatus === 'completed' ? '#E1EFE4' : (b.timeStatus === 'cancelled' || b.timeStatus === 'no-show') ? '#F7E4E0' : b.timeStatus === 'upcoming' ? '#E6F0FA' : 'var(--border-light)', color: b.timeStatus === 'completed' ? '#3F6B4F' : (b.timeStatus === 'cancelled' || b.timeStatus === 'no-show') ? '#A8452F' : b.timeStatus === 'upcoming' ? '#1D5A9E' : '#6B6555', textTransform: 'capitalize' }}>{b.timeStatus === 'no-show' ? 'No show' : b.timeStatus}</span>
                     {b.calc.refundDue > 0 && (
                       <span className="mm-tag" style={{ background: b.calc.refundStatus === 'paid' ? '#E1EFE4' : '#FBEFD9', color: b.calc.refundStatus === 'paid' ? '#3F6B4F' : '#8A5E1E' }}>Refund {b.calc.refundStatus === 'paid' ? 'paid' : `₹${money(b.calc.refundBalance)} due`}</span>
                     )}

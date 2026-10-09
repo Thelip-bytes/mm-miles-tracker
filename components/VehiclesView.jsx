@@ -33,7 +33,7 @@ export function VehiclesView({ vehicles, hosts, bookings, onAdd, onEdit, onDelet
         <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden' }}>
           {vehicles.map((v, i) => {
             const host = hosts.find(h => h.id === v.hostId);
-            const isLive = bookings.some(b => b.vehicleId === v.id && b.status === 'ongoing' && !b.calc.isUpcoming);
+            const isLive = bookings.some(b => b.vehicleId === v.id && b.timeStatus === 'ongoing');
             return (
               <div key={v.id} className="mm-v-row" style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border-light)' }}>
                 <span className="mm-tag mm-v-status" style={{ background: isLive ? '#E1EFE4' : '#FBEFD9', color: isLive ? '#3F6B4F' : '#8A5E1E', display: 'inline-flex', alignItems: 'center', gap: '5px', width: '58px', justifyContent: 'center', flexShrink: 0 }}>
