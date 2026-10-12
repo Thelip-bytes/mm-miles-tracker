@@ -22,7 +22,7 @@ const PHOTO_COLUMNS = ['photo', 'aadhar_photo', 'license_photo'];
 
 const STATEMENTS = [
   `select public.current_role() as role`,
-  `select booking_id as id, * from public.booking_financials order by starts_at desc`,
+  `select booking_id as id, * from public.booking_financials order by code desc`,
   `select * from public.vehicles order by reg_number`,
   `select * from public.hosts order by name`,
   `select * from public.customers order by name`,

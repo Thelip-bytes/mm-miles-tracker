@@ -45,8 +45,12 @@ function wasRateCardDiscounted(form, vehicles) {
   return withDiscount !== Math.round(base) && Number(form.rentalAmount) === withDiscount;
 }
 
-export function BookingModal({ form, vehicles, hosts, customers, transactions, bookings, onCancel, onSave, onQuickAddCustomer, readOnly, canFinance, canOverridePrice, canBypassTimeGuards, canQuickAddCustomer, saving, syncing, saveError, onDismissError }) {
+export function BookingModal({ form, vehicles, hosts, customers, transactions, bookings, onCancel, onSave, onQuickAddCustomer, readOnly, canFinance, canOverridePrice, canBypassTimeGuards, canChangeBookingStatus, canQuickAddCustomer, saving, syncing, saveError, onDismissError }) {
   const [data, setData] = useState(form);
+  const [adminStatusChoice, setAdminStatusChoice] = useState(() => {
+    if (form.status === 'cancelled' || form.status === 'no-show') return form.status;
+    return 'auto';
+  });
   // New bookings start with no discount. Existing rate-card bookings recover
   // the choice from their saved rental amount, so no database migration is
   // needed just to remember the selected price.
@@ -255,7 +259,59 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
   const closingFieldsComplete = useMemo(() => {
     return REQUIRED_ALWAYS.every(k => data[k] !== undefined && data[k] !== null && data[k] !== '');
   }, [data]);
-  const displayStatus = bookingTimeStatus(data.start, data.end, data.status, new Date(), data.closingTime);
+  const displayStatus = useMemo(() => {
+    if (canChangeBookingStatus && adminStatusChoice !== 'auto') {
+      return adminStatusChoice;
+    }
+    if (data.status === 'cancelled' || data.status === 'no-show') {
+      return data.status;
+    }
+    return bookingTimeStatus(data.start, data.end, 'ongoing', new Date(), data.closingTime);
+  }, [canChangeBookingStatus, adminStatusChoice, data.status, data.start, data.end, data.closingTime]);
+
+  function handleRestoreBooking() {
+    setAdminStatusChoice('auto');
+    setData(d => ({
+      ...d,
+      status: 'ongoing',
+      cancelledAt: '',
+      refundPercent: '',
+    }));
+    setClosingError('');
+  }
+
+  function handleStatusChange(newStatus) {
+    setAdminStatusChoice(newStatus);
+    if (newStatus === 'auto') {
+      setData(d => ({
+        ...d,
+        status: 'ongoing',
+        cancelledAt: '',
+        refundPercent: '',
+      }));
+    } else if (newStatus === 'ongoing' || newStatus === 'completed') {
+      setData(d => ({
+        ...d,
+        status: newStatus,
+        cancelledAt: '',
+        refundPercent: '',
+      }));
+    } else if (newStatus === 'cancelled') {
+      setData(d => ({
+        ...d,
+        status: 'cancelled',
+        cancelledAt: d.cancelledAt || nowLocal(),
+      }));
+    } else if (newStatus === 'no-show') {
+      setData(d => ({
+        ...d,
+        status: 'no-show',
+        cancelledAt: d.cancelledAt || nowLocal(),
+        refundPercent: 0,
+      }));
+    }
+    setClosingError('');
+  }
 
   useEffect(() => {
     if (data.status === 'cancelled' && !data.cancelledAt) set('cancelledAt', nowLocal());
@@ -307,10 +363,22 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
       return;
     }
     setClosingError('');
-    const status = data.status === 'cancelled' || data.status === 'no-show'
-      ? data.status
-      : (displayStatus === 'completed' && closingFieldsComplete ? 'completed' : 'ongoing');
-    onSave({ ...data, status });
+    let finalStatus;
+    if (canChangeBookingStatus && adminStatusChoice !== 'auto') {
+      finalStatus = adminStatusChoice;
+    } else if (data.status === 'cancelled' || data.status === 'no-show') {
+      finalStatus = data.status;
+    } else {
+      const dynStatus = bookingTimeStatus(data.start, data.end, 'ongoing', new Date(), data.closingTime);
+      finalStatus = (dynStatus === 'completed' && closingFieldsComplete) ? 'completed' : 'ongoing';
+    }
+    const isCancelledOrNoShow = finalStatus === 'cancelled' || finalStatus === 'no-show';
+    onSave({
+      ...data,
+      status: finalStatus,
+      cancelledAt: isCancelledOrNoShow ? (data.cancelledAt || nowLocal()) : null,
+      refundPercent: finalStatus === 'cancelled' ? (data.refundPercent === '' ? null : data.refundPercent) : null,
+    });
   }
 
   // Both the field-level and the server-level error render at the TOP of the
@@ -489,12 +557,56 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
         {!data.id && <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '8px 0 0' }}>Save the booking first, then log its payment{canFinance ? ' and payout' : ''} from "Income, expenses & cash flow" linked to this booking's code.</p>}
       </div>
 
-      <Field label="Booking status" hint="updates from the current time and these dates">
-        <div className="mm-input" aria-live="polite" style={{ background: 'var(--card-bg)', color: 'var(--text-heading)', textTransform: 'capitalize' }}>{displayStatus === 'no-show' ? 'No show' : displayStatus}</div>
-        {(displayStatus === 'upcoming' || displayStatus === 'ongoing') && data.status !== 'cancelled' && data.status !== 'no-show' && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
-            <button type="button" className="mm-btn mm-btn-ghost mm-btn-sm" onClick={() => { set('status', 'cancelled'); setClosingError(''); }}>Cancel booking</button>
-            {displayStatus === 'ongoing' && <button type="button" className="mm-btn mm-btn-ghost mm-btn-sm" onClick={() => { set('status', 'no-show'); setClosingError(''); }}>Mark no-show</button>}
+      {canChangeBookingStatus && (data.status === 'cancelled' || data.status === 'no-show') && (
+        <div style={{ background: '#FDF3F0', border: '1px solid #E0A79A', borderRadius: '8px', padding: '12px 14px', marginBottom: '14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+          <div>
+            <p style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: 600, color: '#A8452F' }}>
+              Booking is currently {data.status === 'no-show' ? 'marked as No-show' : 'Cancelled'}
+            </p>
+            <p style={{ margin: 0, fontSize: '11px', color: '#8A3B2A' }}>
+              As admin, you can restore this booking back to active status. The schedule and rate will dynamically apply.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="mm-btn"
+            style={{ background: '#3F6B4F', color: '#fff', fontSize: '12px', padding: '7px 14px', borderRadius: '6px', cursor: 'pointer', border: 'none', fontWeight: 500 }}
+            onClick={handleRestoreBooking}
+          >
+            ↺ Restore booking (Reactivate)
+          </button>
+        </div>
+      )}
+
+      <Field label="Booking status" hint={canChangeBookingStatus ? "Admin control — pick an explicit status or keep 'Auto' to update dynamically from schedule" : "Updates dynamically from the current time and dates"}>
+        {canChangeBookingStatus ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '10px', alignItems: 'center' }}>
+            <select
+              className="mm-input"
+              value={adminStatusChoice}
+              onChange={e => handleStatusChange(e.target.value)}
+              style={{ textTransform: 'capitalize', fontWeight: 500 }}
+            >
+              <option value="auto">Auto — dynamic from schedule ({displayStatus === 'no-show' ? 'No show' : displayStatus})</option>
+              <option value="ongoing">Ongoing (Active trip)</option>
+              <option value="completed">Completed (Trip ended)</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="no-show">No-show</option>
+            </select>
+            <span className="mm-tag" style={{
+              background: displayStatus === 'completed' ? '#E1EFE4' : (displayStatus === 'cancelled' || displayStatus === 'no-show') ? '#F7E4E0' : displayStatus === 'upcoming' ? '#E6F0FA' : 'var(--border-light)',
+              color: displayStatus === 'completed' ? '#3F6B4F' : (displayStatus === 'cancelled' || displayStatus === 'no-show') ? '#A8452F' : displayStatus === 'upcoming' ? '#1D5A9E' : '#6B6555',
+              fontSize: '12px',
+              padding: '7px 12px',
+              textTransform: 'capitalize',
+              fontWeight: 600
+            }}>
+              {displayStatus === 'no-show' ? 'No show' : displayStatus}
+            </span>
+          </div>
+        ) : (
+          <div className="mm-input" aria-live="polite" style={{ background: 'var(--card-bg)', color: 'var(--text-heading)', textTransform: 'capitalize' }}>
+            {displayStatus === 'no-show' ? 'No show' : displayStatus}
           </div>
         )}
         {displayStatus === 'completed' && !closingFieldsComplete && (
@@ -502,7 +614,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
         )}
       </Field>
 
-      {(data.status === 'cancelled' || data.status === 'no-show') && (
+      {(data.status === 'cancelled' || data.status === 'no-show' || (canChangeBookingStatus && (adminStatusChoice === 'cancelled' || adminStatusChoice === 'no-show'))) && (
         <div style={{ background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px' }}>
           <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 8px' }}>Cancellation & refund</p>
           {data.status === 'no-show' ? (
@@ -510,9 +622,16 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
           ) : (
             <Fragment>
               <div className="mm-form-grid" style={{ marginBottom: '10px' }}>
-                <Field label="Cancelled at" hint={canBypassTimeGuards ? 'admin can adjust' : 'locked to system time'}>
+                <Field label="Cancelled at" hint={canBypassTimeGuards ? 'admin can adjust or clear' : 'locked to system time'}>
                   {canBypassTimeGuards ? (
-                    <input type="datetime-local" max={nowLocal()} className="mm-input" value={data.cancelledAt || ''} onChange={e => set('cancelledAt', e.target.value)} />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input type="datetime-local" max={nowLocal()} className="mm-input" style={{ flex: 1 }} value={data.cancelledAt || ''} onChange={e => set('cancelledAt', e.target.value)} />
+                      {data.cancelledAt && (
+                        <button type="button" className="mm-btn mm-btn-ghost mm-btn-sm" onClick={() => set('cancelledAt', '')} title="Clear cancellation timestamp">
+                          Clear
+                        </button>
+                      )}
+                    </div>
                   ) : (
                     <div className="mm-input" style={{ background: 'var(--card-bg)', color: 'var(--text-muted)', cursor: 'default' }}>{(data.cancelledAt || '').replace('T', ' ') || '—'}</div>
                   )}

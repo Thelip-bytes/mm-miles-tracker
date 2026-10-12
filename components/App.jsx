@@ -108,6 +108,7 @@ export function App({ role, initialData, onLogout }) {
   const [customerForm, setCustomerForm] = useState(null);
   const [transactionForm, setTransactionForm] = useState(null);
   const [bookingFilter, setBookingFilter] = useState('all');
+  const [bookingSortDir, setBookingSortDir] = useState('desc');
   const [search, setSearch] = useState('');
   const [payoutFilter, setPayoutFilter] = useState('all');
   const [payoutSearch, setPayoutSearch] = useState('');
@@ -812,7 +813,11 @@ export function App({ role, initialData, onLogout }) {
 
   // ---------------------------------------------------------------- filters
   const filteredBookings = useMemo(() => {
-    let list = [...enriched].sort((a, b) => (b.start || '').localeCompare(a.start || ''));
+    let list = [...enriched].sort((a, b) => {
+      const numA = parseInt(String(a.code || '').replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(String(b.code || '').replace(/\D/g, ''), 10) || 0;
+      return bookingSortDir === 'asc' ? numA - numB : numB - numA;
+    });
     if (bookingFilter === 'payment-pending') list = list.filter(b => b.status !== 'cancelled' && b.status !== 'no-show' && b.calc.paymentStatus !== 'Paid');
     else if (bookingFilter === 'upcoming' || bookingFilter === 'ongoing' || bookingFilter === 'completed') list = list.filter(b => b.timeStatus === bookingFilter);
     else if (bookingFilter !== 'all') list = list.filter(b => b.status === bookingFilter);
@@ -821,10 +826,14 @@ export function App({ role, initialData, onLogout }) {
       list = list.filter(b => (b.code || '').toLowerCase().includes(q) || vehicleLabel(b.calc.vehicle).toLowerCase().includes(q) || customerName(b.customerId).toLowerCase().includes(q));
     }
     return list;
-  }, [enriched, bookingFilter, search, customerById, vehicleLabel, customerName]);
+  }, [enriched, bookingSortDir, bookingFilter, search, customerById, vehicleLabel, customerName]);
 
   const filteredPayouts = useMemo(() => {
-    let list = enriched.filter(b => b.status !== 'cancelled' && b.status !== 'no-show').sort((a, b) => (b.start || '').localeCompare(a.start || ''));
+    let list = enriched.filter(b => b.status !== 'cancelled' && b.status !== 'no-show').sort((a, b) => {
+      const numA = parseInt(String(a.code || '').replace(/\D/g, ''), 10) || 0;
+      const numB = parseInt(String(b.code || '').replace(/\D/g, ''), 10) || 0;
+      return numB - numA;
+    });
     if (payoutFilter !== 'all') list = list.filter(b => b.calc.payoutStatus === payoutFilter);
     if (payoutSearch.trim()) {
       const q = payoutSearch.toLowerCase();
@@ -927,6 +936,7 @@ export function App({ role, initialData, onLogout }) {
         {tab === 'overview' && perms.tabs.includes('overview') && <Overview stats={stats} chartData={chartData} bookings={enriched} transactions={transactions} vehicleLabel={vehicleLabel} customerName={customerName} theme={theme} />}
         {tab === 'bookings' && perms.tabs.includes('bookings') && (
           <Bookings bookings={filteredBookings} vehicles={vehicles} filter={bookingFilter} setFilter={setBookingFilter} search={search} setSearch={setSearch}
+            sortDir={bookingSortDir} onToggleSort={() => setBookingSortDir(d => d === 'desc' ? 'asc' : 'desc')}
             onAdd={() => { const start = nowLocal(); setBookingForm({ start, end: localInputAfterHours(start, 24), days: 1, status: 'ongoing' }); }}
             onEdit={(b) => setBookingForm(b)} onView={(b) => setBookingForm(b)}
             onDelete={(id) => setDeleteConfirm({ type: 'booking', id, label: `booking ${bookingById.get(id)?.code || ''}` })}
@@ -962,7 +972,7 @@ export function App({ role, initialData, onLogout }) {
         )}
       </main>
 
-      {bookingForm && <BookingModal form={bookingForm} vehicles={vehicles} hosts={hosts} customers={customers} transactions={transactions} bookings={bookings} onCancel={() => setBookingForm(null)} onSave={saveBooking} onQuickAddCustomer={quickAddCustomer} readOnly={!perms.canEditBooking(bookingForm)} canFinance={perms.canFinance} canOverridePrice={perms.canOverridePrice} canBypassTimeGuards={perms.canBypassTimeGuards} canQuickAddCustomer={perms.canQuickAddCustomer} saving={saving} syncing={refreshing} saveError={saveError} onDismissError={() => setSaveError('')} />}
+      {bookingForm && <BookingModal form={bookingForm} vehicles={vehicles} hosts={hosts} customers={customers} transactions={transactions} bookings={bookings} onCancel={() => setBookingForm(null)} onSave={saveBooking} onQuickAddCustomer={quickAddCustomer} readOnly={!perms.canEditBooking(bookingForm)} canFinance={perms.canFinance} canOverridePrice={perms.canOverridePrice} canBypassTimeGuards={perms.canBypassTimeGuards} canChangeBookingStatus={perms.canChangeBookingStatus} canQuickAddCustomer={perms.canQuickAddCustomer} saving={saving} syncing={refreshing} saveError={saveError} onDismissError={() => setSaveError('')} />}
       {vehicleForm && <VehicleModal form={vehicleForm} hosts={hosts} onCancel={() => setVehicleForm(null)} onSave={saveVehicle} saving={saving} syncing={refreshing} saveError={saveError} />}
       {hostForm && <HostModal form={hostForm} onCancel={() => setHostForm(null)} onSave={saveHost} saving={saving} syncing={refreshing} saveError={saveError} />}
       {customerForm && <CustomerModal form={customerForm} photos={customerPhotos[customerForm.id]} onCancel={() => setCustomerForm(null)} onSave={saveCustomer} saving={saving} syncing={refreshing} saveError={saveError} />}

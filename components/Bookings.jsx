@@ -20,7 +20,7 @@ import {
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
-export function Bookings({ bookings, vehicles, filter, setFilter, search, setSearch, onAdd, onEdit, onView, onDelete, vehicleLabel, customerName, perms }) {
+export function Bookings({ bookings, vehicles, filter, setFilter, search, setSearch, sortDir = 'desc', onToggleSort, onAdd, onEdit, onView, onDelete, vehicleLabel, customerName, perms }) {
   const filters = [['all', 'All'], ['upcoming', 'Upcoming'], ['ongoing', 'Ongoing'], ['completed', 'Completed'], ['cancelled', 'Cancelled'], ['no-show', 'No show'], ['payment-pending', 'Payment pending']];
   return (
     <div>
@@ -51,7 +51,13 @@ export function Bookings({ bookings, vehicles, filter, setFilter, search, setSea
       {bookings.length === 0 ? <EmptyState text="No bookings match. Add a booking to start tallying rentals against what's collected." /> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <div className="mm-hide-mobile" style={{ display: 'flex', alignItems: 'center', padding: '0 16px 0 30px', gap: '16px', flexWrap: 'wrap' }}>
-            <div style={{ minWidth: '70px', fontSize: '11px', color: 'var(--text-faint)' }}>Booking</div>
+            <div style={{ minWidth: '70px', fontSize: '11px', color: 'var(--text-faint)' }}>
+              {onToggleSort ? (
+                <button type="button" onClick={onToggleSort} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--text-faint)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '3px' }} title="Toggle numerical order">
+                  Booking <span style={{ fontWeight: 600, color: 'var(--text-heading)' }}>{sortDir === 'desc' ? '↓' : '↑'}</span>
+                </button>
+              ) : 'Booking'}
+            </div>
             <div style={{ flex: 1, minWidth: '200px', fontSize: '11px', color: 'var(--text-faint)' }}>Vehicle & customer</div>
             <div style={{ textAlign: 'right', minWidth: '110px', fontSize: '11px', color: 'var(--text-faint)' }}>Due / paid</div>
             <div style={{ minWidth: '76px', fontSize: '11px', color: 'var(--text-faint)' }}>Booking status</div>
@@ -80,9 +86,9 @@ export function Bookings({ bookings, vehicles, filter, setFilter, search, setSea
                     )}
                   </div>
                   <div className="mm-bk-actions">
-                    {perms.canEditBooking(b) && <button type="button" className="mm-icon-btn" onClick={() => onEdit(b)}><IconEdit /></button>}
-                    {!perms.canEditBooking(b) && perms.viewBookingsReadOnly && <button type="button" className="mm-icon-btn" onClick={() => onView(b)}><IconEye /></button>}
-                    {perms.canDeleteBooking && <button type="button" className="mm-icon-btn" onClick={() => onDelete(b.id)}><IconTrash /></button>}
+                    {perms.canEditBooking(b) && <button type="button" className="mm-icon-btn" title="Edit booking" onClick={() => onEdit(b)}><IconEdit /></button>}
+                    {!perms.canEditBooking(b) && <button type="button" className="mm-icon-btn" title="View booking details" onClick={() => onView(b)}><IconEye /></button>}
+                    {perms.canDeleteBooking && <button type="button" className="mm-icon-btn" title="Delete booking" onClick={() => onDelete(b.id)}><IconTrash /></button>}
                   </div>
                 </div>
               </Stub>
