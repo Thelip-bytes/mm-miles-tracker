@@ -194,3 +194,11 @@
     .mm-modal-actions { position: sticky; bottom: 0; z-index: 1; margin: 4px -16px -16px; padding: 12px 16px; background: var(--page-bg); border-top: 1px solid var(--border); }
     .mm-modal-actions .mm-btn { flex: 1; justify-content: center; }
   }
+
+  @keyframes mm-spin {
+    to { transform: rotate(360deg); }
+  }
+  .mm-spin {
+    animation: mm-spin 0.8s linear infinite;
+  }
+

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback, Fragment } from 'react';
 import { api, toBookingView, fromBookingView } from '@/lib/api';
-import { HOST_PAYOUT_CATEGORY, INCOME_CATEGORIES, ROLE_PERMS } from '@/lib/constants';
+import { HOST_PAYOUT_CATEGORY, INCOME_CATEGORIES, ROLE_PERMS, SYNC_CONFIG } from '@/lib/constants';
 import {
   todayStr, nowLocal, localInputAfterHours, bookingTimeStatus, dateOnlyInTimezone, monthKey, monthLabel,
   safeGet, safeSet, getCol, parseFlexibleDateTime, parseFlexibleDate, numOrBlank
@@ -144,10 +144,32 @@ export function App({ role, initialData, onLogout }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [navOpen]);
 
+  const [tabSwitching, setTabSwitching] = useState(false);
+  const tabTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (tabTimerRef.current) clearTimeout(tabTimerRef.current);
+    };
+  }, []);
+
   function selectTab(id) {
-    setTab(id);
+    if (id === tab) {
+      setNavOpen(false);
+      return;
+    }
     setNavOpen(false);
     window.scrollTo(0, 0);
+    if (SYNC_CONFIG?.enabled && SYNC_CONFIG.tabTransitionMs > 0) {
+      setTabSwitching(true);
+      if (tabTimerRef.current) clearTimeout(tabTimerRef.current);
+      tabTimerRef.current = setTimeout(() => {
+        setTab(id);
+        setTabSwitching(false);
+      }, SYNC_CONFIG.tabTransitionMs);
+    } else {
+      setTab(id);
+    }
   }
 
   // Load the ledger once. Saves apply their confirmed database row directly;
@@ -856,7 +878,12 @@ export function App({ role, initialData, onLogout }) {
   const navItems = allNavItems.filter(item => perms.tabs.includes(item.id));
 
   if (loading) {
-    return <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6B6555', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>Loading your ledger…</div>;
+    return (
+      <div style={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', color: '#6B6555', fontFamily: 'Inter, sans-serif', fontSize: '13px' }}>
+        <div className="mm-spin" style={{ width: '32px', height: '32px', border: '3px solid var(--border)', borderTopColor: '#B8863C', borderRadius: '50%' }} />
+        <span>Loading your ledger…</span>
+      </div>
+    );
   }
   if (loadError && bookings.length === 0) {
     return (
@@ -935,42 +962,51 @@ export function App({ role, initialData, onLogout }) {
               aria-label="Dismiss">×</button>
           </div>
         )}
-        {tab === 'overview' && perms.tabs.includes('overview') && <Overview stats={stats} chartData={chartData} bookings={enriched} transactions={transactions} vehicleLabel={vehicleLabel} customerName={customerName} theme={theme} />}
-        {tab === 'bookings' && perms.tabs.includes('bookings') && (
-          <Bookings bookings={filteredBookings} vehicles={vehicles} filter={bookingFilter} setFilter={setBookingFilter} search={search} setSearch={setSearch}
-            sortDir={bookingSortDir} onToggleSort={() => setBookingSortDir(d => d === 'desc' ? 'asc' : 'desc')}
-            onAdd={() => { const start = nowLocal(); setBookingForm({ start, end: localInputAfterHours(start, 24), days: 1, status: 'ongoing' }); }}
-            onEdit={(b) => setBookingForm(b)} onView={(b) => setBookingForm(b)}
-            onDelete={(id) => setDeleteConfirm({ type: 'booking', id, label: `booking ${bookingById.get(id)?.code || ''}` })}
-            vehicleLabel={vehicleLabel} customerName={customerName} perms={perms} />
-        )}
-        {tab === 'payouts' && perms.tabs.includes('payouts') && (
-          <PayoutsView bookings={filteredPayouts} allEnriched={enriched} transactions={transactions} vehicleLabel={vehicleLabel} filter={payoutFilter} setFilter={setPayoutFilter} search={payoutSearch} setSearch={setPayoutSearch} onRecordPayout={openPayoutEntry} />
-        )}
-        {tab === 'vehicles' && perms.tabs.includes('vehicles') && (
-          <VehiclesView vehicles={vehicles} hosts={hosts} bookings={enriched}
-            onAdd={() => setVehicleForm({ commissionRate: '', kmPolicy: 'unlimited' })} onEdit={(v) => setVehicleForm(v)}
-            onDelete={(id) => setDeleteConfirm({ type: 'vehicle', id, label: `vehicle ${vehicleById.get(id)?.regNumber || ''}` })}
-            canEdit={perms.canFleet} canFinance={perms.canFinance} />
-        )}
-        {tab === 'hosts' && perms.tabs.includes('hosts') && (
-          <HostsView hosts={hosts} vehicles={vehicles} bookings={enriched}
-            onAdd={() => setHostForm({ commissionRate: 30 })} onEdit={(h) => setHostForm(h)}
-            onDelete={(id) => setDeleteConfirm({ type: 'host', id, label: `host ${hostById.get(id)?.name || ''}` })}
-            canEdit={perms.canFleet} canFinance={perms.canFinance} />
-        )}
-        {tab === 'customers' && perms.tabs.includes('customers') && (
-          <CustomersView customers={customersWithPhotos} bookingsByCustomer={bookingsByCustomer} onAdd={() => setCustomerForm({})} onEdit={(c) => setCustomerForm(c)}
-            onDelete={(id) => setDeleteConfirm({ type: 'customer', id, label: `customer ${customerById.get(id)?.name || ''}` })}
-            canEdit={perms.canCustomers} />
-        )}
-        {tab === 'cashflow' && perms.tabs.includes('cashflow') && (
-          <CashFlowView cashFlow={cashFlow} transactions={transactionsByDateDesc} bookings={bookings}
-            bookingLabel={bookingLabel}
-            onAddIncome={() => setTransactionForm({ type: 'income', date: todayStr(), category: INCOME_CATEGORIES[0], mode: 'online' })}
-            onAddExpense={() => setTransactionForm({ type: 'expense', date: todayStr(), category: 'Vehicle maintenance', mode: 'cash' })}
-            onEdit={(t) => setTransactionForm(t)}
-            onDelete={(id) => setDeleteConfirm({ type: 'transaction', id, label: `${transactionById.get(id)?.category || 'entry'}` })} />
+        {tabSwitching ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '340px', gap: '14px' }}>
+            <div className="mm-spin" style={{ width: '28px', height: '28px', border: '3px solid var(--border)', borderTopColor: '#B8863C', borderRadius: '50%' }} />
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading…</span>
+          </div>
+        ) : (
+          <Fragment>
+            {tab === 'overview' && perms.tabs.includes('overview') && <Overview stats={stats} chartData={chartData} bookings={enriched} transactions={transactions} vehicleLabel={vehicleLabel} customerName={customerName} theme={theme} />}
+            {tab === 'bookings' && perms.tabs.includes('bookings') && (
+              <Bookings bookings={filteredBookings} vehicles={vehicles} filter={bookingFilter} setFilter={setBookingFilter} search={search} setSearch={setSearch}
+                sortDir={bookingSortDir} onToggleSort={() => setBookingSortDir(d => d === 'desc' ? 'asc' : 'desc')}
+                onAdd={() => { const start = nowLocal(); setBookingForm({ start, end: localInputAfterHours(start, 24), days: 1, status: 'ongoing' }); }}
+                onEdit={(b) => setBookingForm(b)} onView={(b) => setBookingForm(b)}
+                onDelete={(id) => setDeleteConfirm({ type: 'booking', id, label: `booking ${bookingById.get(id)?.code || ''}` })}
+                vehicleLabel={vehicleLabel} customerName={customerName} perms={perms} />
+            )}
+            {tab === 'payouts' && perms.tabs.includes('payouts') && (
+              <PayoutsView bookings={filteredPayouts} allEnriched={enriched} transactions={transactions} vehicleLabel={vehicleLabel} filter={payoutFilter} setFilter={setPayoutFilter} search={payoutSearch} setSearch={setPayoutSearch} onRecordPayout={openPayoutEntry} />
+            )}
+            {tab === 'vehicles' && perms.tabs.includes('vehicles') && (
+              <VehiclesView vehicles={vehicles} hosts={hosts} bookings={enriched}
+                onAdd={() => setVehicleForm({ commissionRate: '', kmPolicy: 'unlimited' })} onEdit={(v) => setVehicleForm(v)}
+                onDelete={(id) => setDeleteConfirm({ type: 'vehicle', id, label: `vehicle ${vehicleById.get(id)?.regNumber || ''}` })}
+                canEdit={perms.canFleet} canFinance={perms.canFinance} />
+            )}
+            {tab === 'hosts' && perms.tabs.includes('hosts') && (
+              <HostsView hosts={hosts} vehicles={vehicles} bookings={enriched}
+                onAdd={() => setHostForm({ commissionRate: 30 })} onEdit={(h) => setHostForm(h)}
+                onDelete={(id) => setDeleteConfirm({ type: 'host', id, label: `host ${hostById.get(id)?.name || ''}` })}
+                canEdit={perms.canFleet} canFinance={perms.canFinance} />
+            )}
+            {tab === 'customers' && perms.tabs.includes('customers') && (
+              <CustomersView customers={customersWithPhotos} bookingsByCustomer={bookingsByCustomer} onAdd={() => setCustomerForm({})} onEdit={(c) => setCustomerForm(c)}
+                onDelete={(id) => setDeleteConfirm({ type: 'customer', id, label: `customer ${customerById.get(id)?.name || ''}` })}
+                canEdit={perms.canCustomers} />
+            )}
+            {tab === 'cashflow' && perms.tabs.includes('cashflow') && (
+              <CashFlowView cashFlow={cashFlow} transactions={transactionsByDateDesc} bookings={bookings}
+                bookingLabel={bookingLabel}
+                onAddIncome={() => setTransactionForm({ type: 'income', date: todayStr(), category: INCOME_CATEGORIES[0], mode: 'online' })}
+                onAddExpense={() => setTransactionForm({ type: 'expense', date: todayStr(), category: 'Vehicle maintenance', mode: 'cash' })}
+                onEdit={(t) => setTransactionForm(t)}
+                onDelete={(id) => setDeleteConfirm({ type: 'transaction', id, label: `${transactionById.get(id)?.category || 'entry'}` })} />
+            )}
+          </Fragment>
         )}
       </main>
 
