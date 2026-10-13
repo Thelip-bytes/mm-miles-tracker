@@ -196,11 +196,11 @@ export function App({ role, initialData, onLogout }) {
   const enriched = useMemo(() => {
     const now = new Date(clockNow);
     return bookings.map(b => {
-      const timeStatus = bookingTimeStatus(b.start, b.end, b.status, now, b.closingTime);
+      const timeStatus = bookingTimeStatus(b.start, b.end, b.status, now, b.closingTime, b.endKm);
       return {
         ...b,
         timeStatus,
-        calc: { ...b.calc, isUpcoming: timeStatus === 'upcoming', isOverdue: false },
+        calc: { ...b.calc, isUpcoming: timeStatus === 'upcoming', isOverdue: timeStatus === 'overdue' },
       };
     });
   }, [bookings, clockNow]);
@@ -819,7 +819,9 @@ export function App({ role, initialData, onLogout }) {
       return bookingSortDir === 'asc' ? numA - numB : numB - numA;
     });
     if (bookingFilter === 'payment-pending') list = list.filter(b => b.status !== 'cancelled' && b.status !== 'no-show' && b.calc.paymentStatus !== 'Paid');
-    else if (bookingFilter === 'upcoming' || bookingFilter === 'ongoing' || bookingFilter === 'completed') list = list.filter(b => b.timeStatus === bookingFilter);
+    else if (bookingFilter === 'ongoing') list = list.filter(b => b.timeStatus === 'ongoing' || b.timeStatus === 'overdue');
+    else if (bookingFilter === 'overdue') list = list.filter(b => b.timeStatus === 'overdue');
+    else if (bookingFilter === 'upcoming' || bookingFilter === 'completed') list = list.filter(b => b.timeStatus === bookingFilter);
     else if (bookingFilter !== 'all') list = list.filter(b => b.status === bookingFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
