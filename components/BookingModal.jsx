@@ -359,11 +359,10 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
     }
     // A returned vehicle is free from its actual closing time, not the scheduled
     // end — otherwise a trip closed early still blocks the car until `end`.
+    // Mirrors the bookings_no_overlap constraint (coalesce(closing_time, ends_at)).
     const occupiedUntil = b => {
       const closedAt = b.closingTime ? new Date(b.closingTime) : null;
-      if (closedAt && !Number.isNaN(closedAt.getTime())) return closedAt;
-      if (b.status === 'completed') return new Date(Math.min(new Date(b.end).getTime(), Date.now()));
-      return new Date(b.end);
+      return closedAt && !Number.isNaN(closedAt.getTime()) ? closedAt : new Date(b.end);
     };
     const conflict = (bookings || []).find(b => b.id !== data.id && b.vehicleId === data.vehicleId && b.status !== 'cancelled' && b.status !== 'no-show' && new Date(data.start) < occupiedUntil(b) && new Date(b.start) < new Date(data.end));
     if (conflict) { setClosingError(`This vehicle is already booked as ${conflict.code} from ${(conflict.start || '').replace('T', ' ')} to ${(conflict.closingTime || conflict.end || '').replace('T', ' ')}. Adjust the dates or pick another vehicle.`); return; }
