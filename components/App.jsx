@@ -20,6 +20,7 @@ import { CustomersView } from './CustomersView';
 import { CashFlowView } from './CashFlowView';
 import { BookingModal } from './BookingModal';
 import { VehicleModal } from './VehicleModal';
+import { VehicleStatusModal } from './VehicleStatusModal';
 import { HostModal } from './HostModal';
 import { CustomerModal } from './CustomerModal';
 import { TransactionModal } from './TransactionModal';
@@ -45,6 +46,7 @@ const toVehicle = (v) => ({
   // blank in the UI means "inherit from host" — a NULL column
   commissionRate: v.commission_rate === null ? '' : v.commission_rate,
   notes: v.notes || '',
+  status: v.status || 'available', statusNote: v.status_note || '',
 });
 
 const toHost = (h) => ({
@@ -104,6 +106,7 @@ export function App({ role, initialData, onLogout }) {
 
   const [bookingForm, setBookingForm] = useState(null);
   const [vehicleForm, setVehicleForm] = useState(null);
+  const [vehicleStatusForm, setVehicleStatusForm] = useState(null);
   const [hostForm, setHostForm] = useState(null);
   const [customerForm, setCustomerForm] = useState(null);
   const [transactionForm, setTransactionForm] = useState(null);
@@ -347,6 +350,8 @@ export function App({ role, initialData, onLogout }) {
     extra_km_rate: data.extraKmRate, extra_hour_rate: data.extraHourRate,
     commission_rate: data.commissionRate,
   }), setVehicles, toVehicle, () => setVehicleForm(null));
+  const saveVehicleStatus = (data) => saveRow(() => api.setVehicleStatus(data.id, data.status, data.statusNote),
+    setVehicles, toVehicle, () => setVehicleStatusForm(null), false);
   const saveHost = (data) => saveRow(() => api.saveHost({
     id: data.id, name: data.name, phone: data.phone,
     commission_rate: data.commissionRate, bank_details: data.bank,
@@ -985,6 +990,7 @@ export function App({ role, initialData, onLogout }) {
               <VehiclesView vehicles={vehicles} hosts={hosts} bookings={enriched}
                 onAdd={() => setVehicleForm({ commissionRate: '', kmPolicy: 'unlimited' })} onEdit={(v) => setVehicleForm(v)}
                 onDelete={(id) => setDeleteConfirm({ type: 'vehicle', id, label: `vehicle ${vehicleById.get(id)?.regNumber || ''}` })}
+                onSetStatus={(v) => setVehicleStatusForm(v)} canSetStatus={perms.canVehicleStatus}
                 canEdit={perms.canFleet} canFinance={perms.canFinance} />
             )}
             {tab === 'hosts' && perms.tabs.includes('hosts') && (
@@ -1012,6 +1018,7 @@ export function App({ role, initialData, onLogout }) {
 
       {bookingForm && <BookingModal form={bookingForm} vehicles={vehicles} hosts={hosts} customers={customers} transactions={transactions} bookings={bookings} onCancel={() => setBookingForm(null)} onSave={saveBooking} onQuickAddCustomer={quickAddCustomer} readOnly={!perms.canEditBooking(bookingForm)} canFinance={perms.canFinance} canOverridePrice={perms.canOverridePrice} canBypassTimeGuards={perms.canBypassTimeGuards} canChangeBookingStatus={perms.canChangeBookingStatus} canQuickAddCustomer={perms.canQuickAddCustomer} saving={saving} syncing={refreshing} saveError={saveError} onDismissError={() => setSaveError('')} />}
       {vehicleForm && <VehicleModal form={vehicleForm} hosts={hosts} onCancel={() => setVehicleForm(null)} onSave={saveVehicle} saving={saving} syncing={refreshing} saveError={saveError} />}
+      {vehicleStatusForm && <VehicleStatusModal form={vehicleStatusForm} onCancel={() => setVehicleStatusForm(null)} onSave={saveVehicleStatus} saving={saving} saveError={saveError} />}
       {hostForm && <HostModal form={hostForm} onCancel={() => setHostForm(null)} onSave={saveHost} saving={saving} syncing={refreshing} saveError={saveError} />}
       {customerForm && <CustomerModal form={customerForm} photos={customerPhotos[customerForm.id]} onCancel={() => setCustomerForm(null)} onSave={saveCustomer} saving={saving} syncing={refreshing} saveError={saveError} />}
       {transactionForm && <TransactionModal form={transactionForm} bookings={enriched} bookingLabel={bookingLabel} onCancel={() => setTransactionForm(null)} onSave={saveTransaction} saving={saving} syncing={refreshing} saveError={saveError} />}

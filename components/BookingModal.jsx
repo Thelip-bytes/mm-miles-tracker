@@ -61,6 +61,11 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
   const [newCustomer, setNewCustomer] = useState({ name: '', aadhar: '', licenseNumber: '', phone: '', address: '' });
   const [newCustomerError, setNewCustomerError] = useState('');
   const [closingError, setClosingError] = useState('');
+  // A car under maintenance or paused can't take a new booking (the database
+  // enforces this too); this holds the car whose block is being explained.
+  const [blockedVehicle, setBlockedVehicle] = useState(null);
+  const isUnavailable = v => !!v && (v.status === 'maintenance' || v.status === 'paused');
+  const bookingNeedsVehicle = id => (data.status || 'ongoing') === 'ongoing' && (!data.id || id !== form.vehicleId);
   const errorRef = useRef(null);
   const startRef = useRef(null);
   const endRef = useRef(null);
@@ -364,6 +369,8 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
       const closedAt = b.closingTime ? new Date(b.closingTime) : null;
       return closedAt && !Number.isNaN(closedAt.getTime()) ? closedAt : new Date(b.end);
     };
+    const chosenVehicle = vehicles.find(v => v.id === data.vehicleId);
+    if (isUnavailable(chosenVehicle) && bookingNeedsVehicle(data.vehicleId)) { setBlockedVehicle(chosenVehicle); return; }
     const conflict = (bookings || []).find(b => b.id !== data.id && b.vehicleId === data.vehicleId && b.status !== 'cancelled' && b.status !== 'no-show' && new Date(data.start) < occupiedUntil(b) && new Date(b.start) < new Date(data.end));
     if (conflict) { setClosingError(`This vehicle is already booked as ${conflict.code} from ${(conflict.start || '').replace('T', ' ')} to ${(conflict.closingTime || conflict.end || '').replace('T', ' ')}. Adjust the dates or pick another vehicle.`); return; }
     if (data.priceOverridden && !String(data.priceOverrideReason || '').trim()) {
@@ -409,13 +416,36 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
           )}
         </div>
       )}
+      {blockedVehicle && (
+        <div className="mm-overlay" style={{ zIndex: 60 }} onMouseDown={(e) => { if (e.target === e.currentTarget) setBlockedVehicle(null); }}>
+          <div className="mm-modal" role="alertdialog" aria-labelledby="mm-blocked-title">
+            <div className="mm-modal-head">
+              <p id="mm-blocked-title" style={{ fontFamily: 'Fraunces, serif', fontSize: '17px', fontWeight: 600, color: 'var(--text-heading)', margin: 0 }}>Vehicle not available</p>
+            </div>
+            <div className="mm-modal-body">
+              <p style={{ fontSize: '13px', color: 'var(--text-heading)', margin: 0 }}>
+                <strong>{blockedVehicle.regNumber}</strong> is {blockedVehicle.status === 'maintenance' ? 'under maintenance' : 'paused'}, so it can't be booked right now.
+              </p>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Reason: {blockedVehicle.statusNote || 'none given'}</p>
+              <p style={{ fontSize: '12px', color: 'var(--text-faint)', margin: 0 }}>Pick another vehicle, or set this one back to Available on the Vehicles page first.</p>
+              <div className="mm-modal-actions">
+                <button type="button" className="mm-btn mm-btn-primary" onClick={() => setBlockedVehicle(null)}>OK</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {readOnly && <p style={{ fontSize: '12px', color: 'var(--text-faint)', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px', margin: 0 }}>View-only — this role can't edit bookings.</p>}
       <fieldset disabled={readOnly || saving || syncing} style={{ border: 'none', padding: 0, margin: 0, display: 'contents' }}>
       <div className="mm-form-grid">
         <Field label="Vehicle">
-          <select required className="mm-input" value={data.vehicleId || ''} onChange={e => set('vehicleId', e.target.value)}>
+          <select required className="mm-input" value={data.vehicleId || ''} onChange={e => {
+            const picked = vehicles.find(v => v.id === e.target.value);
+            set('vehicleId', e.target.value);
+            if (isUnavailable(picked) && bookingNeedsVehicle(picked.id)) setBlockedVehicle(picked);
+          }}>
             <option value="">Select vehicle</option>
-            {vehicles.map(v => <option key={v.id} value={v.id}>{v.regNumber} · {v.make} {v.model}</option>)}
+            {vehicles.map(v => <option key={v.id} value={v.id}>{v.regNumber} · {v.make} {v.model}{isUnavailable(v) ? ` — ${v.status === 'maintenance' ? 'Maintenance' : 'Paused'}` : ''}</option>)}
           </select>
         </Field>
         <Field label="Customer">
