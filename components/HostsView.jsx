@@ -20,7 +20,9 @@ import {
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
-export function HostsView({ hosts, vehicles, bookings, onAdd, onEdit, onDelete, canEdit, canFinance }) {
+export function HostsView({ hosts, vehicles, bookings, onAdd, onEdit, onDelete, onRecordPayout, canEdit, canFinance }) {
+  const [openPending, setOpenPending] = useState(() => new Set());
+  function togglePending(id) { setOpenPending(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; }); }
   return (
     <div>
       <div className="mm-page-head" style={{ marginBottom: '4px' }}>
@@ -33,6 +35,8 @@ export function HostsView({ hosts, vehicles, bookings, onAdd, onEdit, onDelete, 
           {hosts.map(h => {
             const hb = bookings.filter(b => b.calc.host && b.calc.host.id === h.id && b.status !== 'cancelled' && b.status !== 'no-show');
             const pending = hb.reduce((s, b) => s + b.calc.payoutBalance, 0);
+            const pendingBookings = hb.filter(b => b.calc.payoutBalance > 0).sort((a, b) => (a.start || '').localeCompare(b.start || ''));
+            const showPending = openPending.has(h.id);
             const hostVehicles = vehicles.filter(v => v.hostId === h.id);
             return (
               <div key={h.id} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px 16px' }}>
@@ -67,8 +71,39 @@ export function HostsView({ hosts, vehicles, bookings, onAdd, onEdit, onDelete, 
                   )}
                 </div>
                 {canFinance && (
-                  <div style={{ display: 'flex', gap: '16px', marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-light)' }}>
-                    <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: '12px', color: pending > 0 ? '#A8452F' : '#3F6B4F', fontWeight: 600 }}>₹{money(pending)} payout pending</span>
+                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border-light)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: '12px', color: pending > 0 ? '#A8452F' : '#3F6B4F', fontWeight: 600 }}>₹{money(pending)} payout pending</span>
+                      {pendingBookings.length > 0 && (
+                        <button type="button" className="mm-btn mm-btn-ghost mm-btn-sm" aria-expanded={showPending} onClick={() => togglePending(h.id)}>
+                          <IconEye /> {showPending ? 'Hide' : `View (${pendingBookings.length})`}
+                        </button>
+                      )}
+                    </div>
+                    {showPending && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px' }}>
+                        {pendingBookings.map(b => {
+                          const v = vehicles.find(x => x.id === b.vehicleId);
+                          return (
+                            <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', background: 'var(--input-bg)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px 10px' }}>
+                              <div style={{ minWidth: 0 }}>
+                                <p style={{ fontSize: '12px', margin: 0, color: 'var(--text-heading)' }}>
+                                  <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontWeight: 600 }}>{b.code}</span>
+                                  {v ? <span style={{ color: 'var(--text-muted)' }}> · {v.regNumber}</span> : null}
+                                </p>
+                                <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '2px 0 0' }}>
+                                  {(b.start || '').replace('T', ' ')} → {(b.closingTime || b.end || '').replace('T', ' ')} · {b.calc.payoutStatus}
+                                </p>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                                <span style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: '12px', fontWeight: 600, color: '#A8452F' }}>₹{money(b.calc.payoutBalance)}</span>
+                                {onRecordPayout && <button type="button" className="mm-btn mm-btn-gold mm-btn-sm" onClick={() => onRecordPayout(b)}>Log payout</button>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

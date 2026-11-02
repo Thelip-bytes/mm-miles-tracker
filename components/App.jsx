@@ -997,6 +997,7 @@ export function App({ role, initialData, onLogout }) {
               <HostsView hosts={hosts} vehicles={vehicles} bookings={enriched}
                 onAdd={() => setHostForm({ commissionRate: 30 })} onEdit={(h) => setHostForm(h)}
                 onDelete={(id) => setDeleteConfirm({ type: 'host', id, label: `host ${hostById.get(id)?.name || ''}` })}
+                onRecordPayout={perms.canFinance ? openPayoutEntry : undefined}
                 canEdit={perms.canFleet} canFinance={perms.canFinance} />
             )}
             {tab === 'customers' && perms.tabs.includes('customers') && (

@@ -117,7 +117,7 @@ export function TransactionModal({ form, bookings, bookingLabel, onCancel, onSav
         </Field>
       )}
       <div className="mm-form-grid">
-        <Field label="Amount (₹)"><input type="number" min="0" required className="mm-input" value={data.amount || ''} onChange={e => { setAmountTouched(true); set('amount', e.target.value); }} /></Field>
+        <Field label="Amount (₹)"><input type="number" min="0" step="0.01" required className="mm-input" value={data.amount || ''} onChange={e => { setAmountTouched(true); set('amount', e.target.value); }} /></Field>
         <Field label="Mode">
           <select className="mm-input" value={data.mode || 'online'} onChange={e => set('mode', e.target.value)}>
             <option value="online">Online</option>

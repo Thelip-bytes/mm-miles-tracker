@@ -373,6 +373,16 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
     if (isUnavailable(chosenVehicle) && bookingNeedsVehicle(data.vehicleId)) { setBlockedVehicle(chosenVehicle); return; }
     const conflict = (bookings || []).find(b => b.id !== data.id && b.vehicleId === data.vehicleId && b.status !== 'cancelled' && b.status !== 'no-show' && new Date(data.start) < occupiedUntil(b) && new Date(b.start) < new Date(data.end));
     if (conflict) { setClosingError(`This vehicle is already booked as ${conflict.code} from ${(conflict.start || '').replace('T', ' ')} to ${(conflict.closingTime || conflict.end || '').replace('T', ' ')}. Adjust the dates or pick another vehicle.`); return; }
+    // A trip past its end that was never completed (no closing time, or a
+    // closing time but no end km) hasn't been closed out, so its times can't
+    // be trusted to say when the car is free. Block any later booking on it
+    // until it is completed. Edits that keep the same vehicle and dates
+    // (e.g. closing this trip) are not re-checked.
+    // Mirrors the trg_bookings_vehicle_returned trigger.
+    const placementChanged = !data.id || data.vehicleId !== form.vehicleId || data.start !== form.start || data.end !== form.end;
+    const willBeActive = data.status !== 'cancelled' && data.status !== 'no-show';
+    const unreturned = placementChanged && willBeActive && (bookings || []).find(b => b.id !== data.id && b.vehicleId === data.vehicleId && b.status === 'ongoing' && new Date(b.end) <= new Date() && new Date(b.start) < new Date(data.end));
+    if (unreturned) { setClosingError(`Booking ${unreturned.code} on this vehicle is past its end time (${(unreturned.end || '').replace('T', ' ')}) but not completed. Record its closing time and end km first, or pick another vehicle.`); return; }
     if (data.priceOverridden && !String(data.priceOverrideReason || '').trim()) {
       setClosingError('Enter a reason for overriding the rate-card price before saving.');
       return;
@@ -495,7 +505,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
       </div>
       <div className="mm-form-grid">
         <Field label="Rental amount (₹)" hint={priceLocked ? pricingInfo.breakdown : (hasRateCard ? 'overridden' : 'no rate card set for this vehicle')}>
-          <input type="number" min="0" required readOnly={priceLocked} className="mm-input" value={data.rentalAmount || ''} onChange={e => set('rentalAmount', e.target.value)} />
+          <input type="number" min="0" step="0.01" required readOnly={priceLocked} className="mm-input" value={data.rentalAmount || ''} onChange={e => set('rentalAmount', e.target.value)} />
         </Field>
         <Field label="Start km reading" hint="required to start the trip"><input type="number" min="0" required placeholder="e.g. 12000" className="mm-input" value={data.startKm === undefined ? '' : data.startKm} onChange={e => set('startKm', e.target.value)} /></Field>
       </div>

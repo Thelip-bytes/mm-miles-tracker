@@ -35,10 +35,10 @@ export function VehicleModal({ form, hosts, onCancel, onSave, saving, syncing, s
       </div>
       <div className="mm-form-grid">
         <Field label="Daily rate (₹)" hint="for each full 24 hrs">
-          <input type="number" min="0" placeholder="e.g. 2700" className="mm-input" value={data.dailyRate || ''} onChange={e => set('dailyRate', e.target.value)} />
+          <input type="number" min="0" step="0.01" placeholder="e.g. 2700" className="mm-input" value={data.dailyRate || ''} onChange={e => set('dailyRate', e.target.value)} />
         </Field>
         <Field label="Hourly rate (₹)" hint="for the leftover hours under a full day">
-          <input type="number" min="0" placeholder="e.g. 150" className="mm-input" value={data.hourlyRate || ''} onChange={e => set('hourlyRate', e.target.value)} />
+          <input type="number" min="0" step="0.01" placeholder="e.g. 150" className="mm-input" value={data.hourlyRate || ''} onChange={e => set('hourlyRate', e.target.value)} />
         </Field>
       </div>
       <div className="mm-form-grid">
@@ -68,7 +68,7 @@ export function VehicleModal({ form, hosts, onCancel, onSave, saving, syncing, s
       {isLimited && (
         <div className="mm-form-grid">
           <Field label="KM limit (per booking)"><input type="number" min="0" placeholder="e.g. 300" className="mm-input" value={data.kmLimit || ''} onChange={e => set('kmLimit', e.target.value)} /></Field>
-          <Field label="Extra km rate (₹/km)"><input type="number" min="0" placeholder="e.g. 15" className="mm-input" value={data.extraKmRate || ''} onChange={e => set('extraKmRate', e.target.value)} /></Field>
+          <Field label="Extra km rate (₹/km)"><input type="number" min="0" step="0.01" placeholder="e.g. 15" className="mm-input" value={data.extraKmRate || ''} onChange={e => set('extraKmRate', e.target.value)} /></Field>
         </div>
       )}
       {!isLimited && (
@@ -76,25 +76,25 @@ export function VehicleModal({ form, hosts, onCancel, onSave, saving, syncing, s
           <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 4px' }}>Short-duration packages</p>
           <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '0 0 10px' }}>Optional — only offered on unlimited-km vehicles. Leave blank to skip short bookings for this vehicle; it'll just use the daily/hourly rate above.</p>
           <div className="mm-form-grid" style={{ marginBottom: '10px' }}>
-            <Field label="Up to 4 hrs (₹ flat)"><input type="number" min="0" placeholder="e.g. 600" className="mm-input" value={data.pkg4hrRate || ''} onChange={e => set('pkg4hrRate', e.target.value)} /></Field>
+            <Field label="Up to 4 hrs (₹ flat)"><input type="number" min="0" step="0.01" placeholder="e.g. 600" className="mm-input" value={data.pkg4hrRate || ''} onChange={e => set('pkg4hrRate', e.target.value)} /></Field>
             <Field label="Included km"><input type="number" min="0" placeholder="e.g. 100" className="mm-input" value={data.pkg4hrKm || ''} onChange={e => set('pkg4hrKm', e.target.value)} /></Field>
           </div>
           <div className="mm-form-grid" style={{ marginBottom: '10px' }}>
-            <Field label="4–10 hrs (₹/hr)"><input type="number" min="0" placeholder="e.g. 150" className="mm-input" value={data.pkg4to10Rate || ''} onChange={e => set('pkg4to10Rate', e.target.value)} /></Field>
+            <Field label="4–10 hrs (₹/hr)"><input type="number" min="0" step="0.01" placeholder="e.g. 150" className="mm-input" value={data.pkg4to10Rate || ''} onChange={e => set('pkg4to10Rate', e.target.value)} /></Field>
             <Field label="Included km"><input type="number" min="0" placeholder="e.g. 200" className="mm-input" value={data.pkg4to10Km || ''} onChange={e => set('pkg4to10Km', e.target.value)} /></Field>
           </div>
           <div className="mm-form-grid">
-            <Field label="Up to 12 hrs (₹ flat)"><input type="number" min="0" placeholder="e.g. 1500" className="mm-input" value={data.pkg12hrRate || ''} onChange={e => set('pkg12hrRate', e.target.value)} /></Field>
+            <Field label="Up to 12 hrs (₹ flat)"><input type="number" min="0" step="0.01" placeholder="e.g. 1500" className="mm-input" value={data.pkg12hrRate || ''} onChange={e => set('pkg12hrRate', e.target.value)} /></Field>
             <Field label="Included km"><input type="number" min="0" placeholder="e.g. 300" className="mm-input" value={data.pkg12hrKm || ''} onChange={e => set('pkg12hrKm', e.target.value)} /></Field>
           </div>
           <Field label="Extra km rate for these packages (₹/km)" hint="charged only when a ≤12hr booking exceeds its package's included km">
-            <input type="number" min="0" placeholder="e.g. 10" className="mm-input" value={data.extraKmRate || ''} onChange={e => set('extraKmRate', e.target.value)} />
+            <input type="number" min="0" step="0.01" placeholder="e.g. 10" className="mm-input" value={data.extraKmRate || ''} onChange={e => set('extraKmRate', e.target.value)} />
           </Field>
           <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '10px 0 0' }}>Included-km caps apply only to bookings that fit inside a package (≤12 hrs). Longer bookings on this vehicle stay genuinely unlimited.</p>
         </div>
       )}
-      <Field label="Extra hour rate (₹/hr)" hint="charged when a booking runs past its return time"><input type="number" min="0" placeholder="e.g. 150" className="mm-input" value={data.extraHourRate || ''} onChange={e => set('extraHourRate', e.target.value)} /></Field>
-      <Field label="Commission % override (optional)" hint="applies to rental & extra hours only"><input type="number" min="0" max="100" placeholder="Leave blank to use host's default" className="mm-input" value={data.commissionRate || ''} onChange={e => set('commissionRate', e.target.value)} /></Field>
+      <Field label="Extra hour rate (₹/hr)" hint="charged when a booking runs past its return time"><input type="number" min="0" step="0.01" placeholder="e.g. 150" className="mm-input" value={data.extraHourRate || ''} onChange={e => set('extraHourRate', e.target.value)} /></Field>
+      <Field label="Commission % override (optional)" hint="applies to rental & extra hours only"><input type="number" min="0" step="0.01" max="100" placeholder="Leave blank to use host's default" className="mm-input" value={data.commissionRate || ''} onChange={e => set('commissionRate', e.target.value)} /></Field>
       {saveError && (
         <p role="alert" style={{ fontSize: '12px', color: '#A8452F', background: '#F7E4E0', border: '1px solid #E0A79A', borderRadius: '8px', padding: '9px 11px', margin: 0, display: 'flex', alignItems: 'center', gap: '5px' }}>
           <IconAlert />{saveError}

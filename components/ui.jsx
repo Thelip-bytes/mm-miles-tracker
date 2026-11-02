@@ -88,7 +88,7 @@ export function ChargeRow({ label, amountKey, noteKey, data, set, readOnly, rate
   return (
     <div className="mm-charge-row">
       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{label}{rateHint ? <span style={{ display: 'block', color: 'var(--text-faint)' }}>{rateHint}</span> : null}</span>
-      <input type="number" min="0" placeholder="₹0" readOnly={readOnly} className="mm-input" value={data[amountKey] === undefined ? '' : data[amountKey]} onChange={e => set(amountKey, e.target.value)} />
+      <input type="number" min="0" step="0.01" placeholder="₹0" readOnly={readOnly} className="mm-input" value={data[amountKey] === undefined ? '' : data[amountKey]} onChange={e => set(amountKey, e.target.value)} />
       {noteKey && <input placeholder="Note (optional)" className="mm-input mm-charge-note" value={data[noteKey] || ''} onChange={e => set(noteKey, e.target.value)} />}
     </div>
   );
