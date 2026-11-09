@@ -22,8 +22,14 @@ import { computeBooking } from '@/lib/computeBooking';
 
 export function CashFlowView({ cashFlow, transactions, bookings, bookingLabel, onAddIncome, onAddExpense, onEdit, onDelete }) {
   const [filter, setFilter] = useState('all');
-  const list = filter === 'all' ? transactions : transactions.filter(t => t.type === filter);
-  const total = transactions.reduce((s, t) => s + (t.type === 'income' ? (Number(t.amount) || 0) : -(Number(t.amount) || 0)), 0);
+  const [modeFilter, setModeFilter] = useState('all');
+  const list = transactions.filter(t =>
+    (filter === 'all' || t.type === filter) &&
+    (modeFilter === 'all' || (modeFilter === 'online' ? t.mode === 'online' : t.mode !== 'online'))
+  );
+  const total = list.reduce((s, t) => s + (t.type === 'income' ? (Number(t.amount) || 0) : -(Number(t.amount) || 0)), 0);
+  const summaryLabel = filter === 'income' ? 'total income' : filter === 'expense' ? 'total expense' : 'net';
+  const summaryValue = filter === 'all' ? total : Math.abs(total);
   return (
     <div>
       <h1 className="mm-h1" style={{ margin: '0 0 4px' }}>Income, expenses & cash flow</h1>
@@ -45,17 +51,25 @@ export function CashFlowView({ cashFlow, transactions, bookings, bookingLabel, o
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-heading)', margin: 0 }}>Entries</p>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{transactions.length} entries · net ₹{money(total)}</p>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0' }}>{list.length} entries · {summaryLabel} {summaryValue < 0 ? '−' : ''}₹{money(Math.abs(summaryValue))}</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button type="button" className="mm-btn mm-btn-ghost" onClick={onAddExpense}><IconPlus size={13} /> New expense</button>
           <button type="button" className="mm-btn mm-btn-primary" onClick={onAddIncome}><IconPlus size={13} /> New income</button>
         </div>
       </div>
-      <div className="mm-chips" style={{ marginBottom: '16px' }}>
-        {[['all', 'All'], ['income', 'Income'], ['expense', 'Expense']].map(([f, label]) => (
-          <span key={f} onClick={() => setFilter(f)} className={`mm-chip${filter === f ? ' active' : ''}`}>{label}</span>
-        ))}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px 18px', marginBottom: '16px' }}>
+        <div className="mm-chips" style={{ flex: 'none' }}>
+          {[['all', 'All'], ['income', 'Income'], ['expense', 'Expense']].map(([f, label]) => (
+            <span key={f} onClick={() => setFilter(f)} className={`mm-chip${filter === f ? ' active' : ''}`}>{label}</span>
+          ))}
+        </div>
+        <span style={{ width: '1px', height: '20px', background: 'var(--border)' }} />
+        <div className="mm-chips" style={{ flex: 'none' }}>
+          {[['all', 'All modes'], ['cash', 'Cash'], ['online', 'Online']].map(([m, label]) => (
+            <span key={m} onClick={() => setModeFilter(m)} className={`mm-chip${modeFilter === m ? ' active' : ''}`}>{label}</span>
+          ))}
+        </div>
       </div>
 
       {list.length === 0 ? <EmptyState text="No entries yet. Log a booking payment, a host payout, or an expense to get started." /> : (
