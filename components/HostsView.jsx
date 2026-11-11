@@ -16,7 +16,7 @@ import {
   refundTierFor, multiDayDiscountFor, uid, todayStr, nowLocal, money, monthKey,
   monthLabel, nextBookingCode, safeGet, safeSet, getCol, pad2, toLocalInputStr,
   toDateInputStr, parseFlexibleDateTime, parseFlexibleDate, numOrBlank,
-  compressImageFile, migrateTransactions
+  compressImageFile, migrateTransactions, fmtDate
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
@@ -92,7 +92,7 @@ export function HostsView({ hosts, vehicles, bookings, onAdd, onEdit, onDelete, 
                                   {v ? <span style={{ color: 'var(--text-muted)' }}> · {v.regNumber}</span> : null}
                                 </p>
                                 <p style={{ fontSize: '11px', color: 'var(--text-faint)', margin: '2px 0 0' }}>
-                                  {(b.start || '').replace('T', ' ')} → {(b.closingTime || b.end || '').replace('T', ' ')} · {b.calc.payoutStatus}
+                                  {fmtDate(b.start)} → {fmtDate(b.closingTime || b.end)} · {b.calc.payoutStatus}
                                 </p>
                               </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>

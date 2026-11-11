@@ -16,7 +16,7 @@ import {
   refundTierFor, multiDayDiscountFor, uid, todayStr, nowLocal, nowLocalMinus, money, monthKey,
   monthLabel, nextBookingCode, safeGet, safeSet, getCol, pad2, toLocalInputStr,
   toDateInputStr, parseFlexibleDateTime, parseFlexibleDate, numOrBlank,
-  compressImageFile, migrateTransactions, bookingTimeStatus
+  compressImageFile, migrateTransactions, fmtDate, bookingTimeStatus
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
@@ -372,7 +372,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
     const chosenVehicle = vehicles.find(v => v.id === data.vehicleId);
     if (isUnavailable(chosenVehicle) && bookingNeedsVehicle(data.vehicleId)) { setBlockedVehicle(chosenVehicle); return; }
     const conflict = (bookings || []).find(b => b.id !== data.id && b.vehicleId === data.vehicleId && b.status !== 'cancelled' && b.status !== 'no-show' && new Date(data.start) < occupiedUntil(b) && new Date(b.start) < new Date(data.end));
-    if (conflict) { setClosingError(`This vehicle is already booked as ${conflict.code} from ${(conflict.start || '').replace('T', ' ')} to ${(conflict.closingTime || conflict.end || '').replace('T', ' ')}. Adjust the dates or pick another vehicle.`); return; }
+    if (conflict) { setClosingError(`This vehicle is already booked as ${conflict.code} from ${fmtDate(conflict.start)} to ${fmtDate(conflict.closingTime || conflict.end)}. Adjust the dates or pick another vehicle.`); return; }
     // A trip past its end that was never completed (no closing time, or a
     // closing time but no end km) hasn't been closed out, so its times can't
     // be trusted to say when the car is free. Block any later booking on it
@@ -382,7 +382,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
     const placementChanged = !data.id || data.vehicleId !== form.vehicleId || data.start !== form.start || data.end !== form.end;
     const willBeActive = data.status !== 'cancelled' && data.status !== 'no-show';
     const unreturned = placementChanged && willBeActive && (bookings || []).find(b => b.id !== data.id && b.vehicleId === data.vehicleId && b.status === 'ongoing' && new Date(b.end) <= new Date() && new Date(b.start) < new Date(data.end));
-    if (unreturned) { setClosingError(`Booking ${unreturned.code} on this vehicle is past its end time (${(unreturned.end || '').replace('T', ' ')}) but not completed. Record its closing time and end km first, or pick another vehicle.`); return; }
+    if (unreturned) { setClosingError(`Booking ${unreturned.code} on this vehicle is past its end time (${fmtDate(unreturned.end)}) but not completed. Record its closing time and end km first, or pick another vehicle.`); return; }
     if (data.priceOverridden && !String(data.priceOverrideReason || '').trim()) {
       setClosingError('Enter a reason for overriding the rate-card price before saving.');
       return;
@@ -688,7 +688,7 @@ export function BookingModal({ form, vehicles, hosts, customers, transactions, b
                       )}
                     </div>
                   ) : (
-                    <div className="mm-input" style={{ background: 'var(--card-bg)', color: 'var(--text-muted)', cursor: 'default' }}>{(data.cancelledAt || '').replace('T', ' ') || '—'}</div>
+                    <div className="mm-input" style={{ background: 'var(--card-bg)', color: 'var(--text-muted)', cursor: 'default' }}>{fmtDate(data.cancelledAt) || '—'}</div>
                   )}
                 </Field>
                 <Field label="Refund %" hint={`policy suggests ${suggestedTier.percent}% · ${suggestedTier.label}`}>

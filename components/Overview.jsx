@@ -16,7 +16,7 @@ import {
   refundTierFor, multiDayDiscountFor, uid, todayStr, nowLocal, money, monthKey,
   monthLabel, nextBookingCode, safeGet, safeSet, getCol, pad2, toLocalInputStr,
   toDateInputStr, parseFlexibleDateTime, parseFlexibleDate, numOrBlank,
-  compressImageFile, migrateTransactions
+  compressImageFile, migrateTransactions, fmtDate
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 import { BarPanel, PiePanel } from './charts';
@@ -35,7 +35,7 @@ export function periodRange(period, customStart, customEnd) {
     return { start, end, label: monthLabel(key) };
   }
   if (period === 'custom' && customStart && customEnd) {
-    return { start: new Date(customStart), end: new Date(customEnd + 'T23:59:59'), label: `${customStart} to ${customEnd}` };
+    return { start: new Date(customStart), end: new Date(customEnd + 'T23:59:59'), label: `${fmtDate(customStart)} to ${fmtDate(customEnd)}` };
   }
   return { start: null, end: null, label: 'all time' };
 }

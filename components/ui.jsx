@@ -1,6 +1,6 @@
 "use client";
 
-import { money } from '@/lib/helpers';
+import { money, fmtDate } from '@/lib/helpers';
 import { DAMAGE_KM_RATE } from '@/lib/constants';
 import { IconClose } from './icons';
 
@@ -76,7 +76,7 @@ export function LinkedEntriesList({ entries, emptyText }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', marginTop: '6px' }}>
       {entries.map(t => (
         <div key={t.id} className="mm-kv-row" style={{ fontSize: '11px', color: 'var(--text-faint)' }}>
-          <span>{t.date} · {t.mode === 'online' ? 'Online' : 'Cash'} · {t.category}</span>
+          <span>{fmtDate(t.date)} · {t.mode === 'online' ? 'Online' : 'Cash'} · {t.category}</span>
           <span>₹{money(t.amount)}</span>
         </div>
       ))}

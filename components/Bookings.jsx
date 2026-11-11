@@ -16,7 +16,7 @@ import {
   refundTierFor, multiDayDiscountFor, uid, todayStr, nowLocal, money, monthKey,
   monthLabel, nextBookingCode, safeGet, safeSet, getCol, pad2, toLocalInputStr,
   toDateInputStr, parseFlexibleDateTime, parseFlexibleDate, numOrBlank,
-  compressImageFile, migrateTransactions
+  compressImageFile, migrateTransactions, fmtDate
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
@@ -73,7 +73,7 @@ export function Bookings({ bookings, vehicles, filter, setFilter, search, setSea
                   </div>
                   <div className="mm-bk-main">
                     <p style={{ fontSize: '13px', color: 'var(--text-heading)', margin: '0 0 2px', fontWeight: 500 }}>{vehicleLabel(b.calc.vehicle)}</p>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{customerName(b.customerId)} · {(b.start || '').replace('T', ' ')} → {(b.end || '').replace('T', ' ')}</p>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>{customerName(b.customerId)} · {fmtDate(b.start)} → {fmtDate(b.end)}</p>
                   </div>
                   <div className="mm-bk-money">
                     <p style={{ fontFamily: '"IBM Plex Mono", monospace', fontSize: '14px', fontWeight: 600, color: 'var(--text-heading)', margin: '0 0 2px' }}>₹{money(b.calc.paidTotal)} <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>/ ₹{money(b.calc.totalDue)}</span></p>

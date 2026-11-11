@@ -16,7 +16,7 @@ import {
   refundTierFor, multiDayDiscountFor, uid, todayStr, nowLocal, money, monthKey,
   monthLabel, nextBookingCode, safeGet, safeSet, getCol, pad2, toLocalInputStr,
   toDateInputStr, parseFlexibleDateTime, parseFlexibleDate, numOrBlank,
-  compressImageFile, migrateTransactions
+  compressImageFile, migrateTransactions, fmtDate
 } from '@/lib/helpers';
 import { computeBooking } from '@/lib/computeBooking';
 
@@ -79,7 +79,7 @@ export function CashFlowView({ cashFlow, transactions, bookings, bookingLabel, o
             return (
               <div key={t.id} className="mm-e-row" style={{ borderTop: i === 0 ? 'none' : '1px solid var(--border-light)' }}>
                 <span className="mm-tag mm-e-type" style={{ background: t.type === 'income' ? '#E1EFE4' : '#F7E4E0', color: t.type === 'income' ? '#3F6B4F' : '#A8452F', width: '58px', textAlign: 'center' }}>{t.type === 'income' ? 'Income' : 'Expense'}</span>
-                <span className="mm-e-date" style={{ fontSize: '12px', color: 'var(--text-faint)' }}>{t.date}</span>
+                <span className="mm-e-date" style={{ fontSize: '12px', color: 'var(--text-faint)' }}>{fmtDate(t.date)}</span>
                 <div className="mm-e-tags">
                   <span className="mm-tag" style={{ background: 'var(--border-light)', color: 'var(--text-muted)' }}>{t.category}</span>
                   {linked && <span className="mm-tag" style={{ background: '#EEF0FA', color: '#3B4A8C', fontFamily: '"IBM Plex Mono", monospace' }}>{linked.code}</span>}
